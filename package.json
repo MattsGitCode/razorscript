@@ -1,0 +1,20 @@
+{
+  "name": "typescript-razor",
+  "version": "0.0.1",
+  "description": "Typescript Razor transpiles razor markup files to Javascript classes",
+  "main": "bin/razor.js",
+  "dependencies": {},
+  "devDependencies": {
+    "qunit-cli": "^0.1.4",
+    "typescript": "^1.0.1"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "author": "Matthew Smith",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MattsGitCode/typescript-razor"
+  }
+}

@@ -1,0 +1,5 @@
+interface ISegment {
+
+}
+
+export = ISegment;
