@@ -9,25 +9,23 @@ class Html implements ISegment {
   public children: Array<ISegment>;
   public isEmpty: boolean;
 
-  constructor(tagName: string, leadingWhitespace: string);
-  constructor(tagName: string, leadingWhitespace: string, attributes: Array<HtmlAttribute>);
-  constructor(tagName: string, leadingWhitespace: string, isEmpty: boolean, whitespaceBeforeClosing: string, attributes?: Array<HtmlAttribute>);
-  constructor(tagName: string, leadingWhitespace: string, attributes: Array<HtmlAttribute>, children: Array<ISegment>);
-  constructor(tagName: string, leadingWhitespace: string, attributesOrIsEmpty?: any, whitespaceOrChildren?: any, attributesOrChildren?: Array<ISegment>) {
+  constructor(tagName: string, leadingWhitespace: string, whitespaceBeforeClosing: string);
+  constructor(tagName: string, leadingWhitespace: string, whitespaceBeforeClosing: string, attributes: Array<HtmlAttribute>);
+  constructor(tagName: string, leadingWhitespace: string, whitespaceBeforeClosing: string, isEmpty: boolean, attributes?: Array<HtmlAttribute>);
+  constructor(tagName: string, leadingWhitespace: string, whitespaceBeforeClosing: string, attributes: Array<HtmlAttribute>, children: Array<ISegment>);
+  constructor(tagName: string, leadingWhitespace: string, whitespaceBeforeClosing: string, attributesOrIsEmpty?: any, attributesOrChildren?: Array<ISegment>) {
     this.leadingWhitespace = leadingWhitespace;
     this.tagName = tagName;
+    this.whitespaceBeforeClosing = whitespaceBeforeClosing;
     this.isEmpty = attributesOrIsEmpty === true;
 
     if (attributesOrIsEmpty === false || attributesOrIsEmpty === true) {
-      this.whitespaceBeforeClosing = whitespaceOrChildren;
       this.attributes = <Array<HtmlAttribute>>attributesOrChildren || [];
       this.children = [];
     } else if (attributesOrIsEmpty) {
-      this.whitespaceBeforeClosing = '';
       this.attributes = attributesOrIsEmpty || [];
-      this.children = whitespaceOrChildren || [];
+      this.children = attributesOrChildren || [];
     } else {
-      this.whitespaceBeforeClosing = '';
       this.attributes = [];
       this.children = [];
     }

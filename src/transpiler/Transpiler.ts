@@ -72,7 +72,7 @@ class Transpiler {
     } else {
       this.code.literal('>');
       segment.children.forEach(c => this.transpileSegment(c));
-      this.code.literal('</' + segment.tagName + '>');
+      this.code.literal(segment.whitespaceBeforeClosing + '</' + segment.tagName + '>');
     }
   }
 

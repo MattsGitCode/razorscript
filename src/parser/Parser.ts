@@ -74,7 +74,7 @@ class Parser {
       this.iterator.nowhitespace.consume('/');
       this.iterator.nowhitespace.consume('>');
 
-      return new HtmlSegment(tagName, leadingWhitespace, true, whitespaceBeforeClosing, attributes);
+      return new HtmlSegment(tagName, leadingWhitespace, whitespaceBeforeClosing, true, attributes);
     }
 
     this.iterator.nowhitespace.consume('>');
@@ -84,14 +84,18 @@ class Parser {
       children.push(this.parseSegment());
     }
 
-    this.iterator.nowhitespace.consume('<');
-    this.iterator.nowhitespace.consume('/');
-    debugger;
-    this.iterator.nowhitespace.consume(tagName);
+    var whitespaceBeforeClosing = '';
+    if (this.iterator.peek.isWhitespace) {
+      whitespaceBeforeClosing = this.iterator.consume().text;
+    }
+
+    this.iterator.consume('<');
+    this.iterator.consume('/');
+    this.iterator.consume(tagName);
 
     this.iterator.nowhitespace.consume('>');
 
-    return new HtmlSegment(tagName, leadingWhitespace, attributes, children);
+    return new HtmlSegment(tagName, leadingWhitespace, whitespaceBeforeClosing, attributes, children);
   }
 
   private parseHtmlAttributeSegment(): HtmlAttributeSegment {

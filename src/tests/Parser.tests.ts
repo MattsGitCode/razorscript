@@ -240,6 +240,17 @@ test('whitespace before html tag recorded', function(){
   equal(htmlSegment.leadingWhitespace, '  ');
 });
 
+test('whitespace before closing html tag recorded', function(){
+  var input = '<div>  </div>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+  var htmlSegment = <HtmlSegment>output[0];
+  equal(htmlSegment.whitespaceBeforeClosing, '  ');
+});
+
 test('empty razor block', function(){
   var input = '@{ }',
       it = new TokenIterator(input),
