@@ -63,7 +63,7 @@ class Transpiler {
   }
 
   private transpileHtmlSegment(segment: HtmlSegment): void {
-    this.code.literal('<' + segment.tagName);
+    this.code.literal(segment.leadingWhitespace + '<' + segment.tagName);
 
     segment.attributes.forEach(attr => this.transpileHtmlAttributeSegment(attr));
 

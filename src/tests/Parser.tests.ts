@@ -229,6 +229,17 @@ test('whitespace before html attribute recorded', function(){
   equal(attrSegment.whitespacePrefix, '  ');
 });
 
+test('whitespace before html tag recorded', function(){
+  var input = '  <div/>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+  var htmlSegment = <HtmlSegment>output[0];
+  equal(htmlSegment.leadingWhitespace, '  ');
+});
+
 test('empty razor block', function(){
   var input = '@{ }',
       it = new TokenIterator(input),

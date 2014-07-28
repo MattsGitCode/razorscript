@@ -33,7 +33,7 @@ class Parser {
       return this.parseRazorSegment();
     }
 
-    if (this.iterator.nowhitespace.peek.isOperator && this.iterator.peek.text === '<') {
+    if (this.iterator.nowhitespace.peek.isOperator && this.iterator.nowhitespace.peek.text === '<') {
       return this.parseHtmlSegment();
     }
 
@@ -53,7 +53,12 @@ class Parser {
   }
 
   private parseHtmlSegment(): HtmlSegment {
-    this.iterator.nowhitespace.consume('<');
+    var leadingWhitespace: string = '';
+    if (this.iterator.peek.isWhitespace){
+      leadingWhitespace = this.iterator.consume().text;
+    }
+
+    this.iterator.consume('<');
     var tagName = this.iterator.nowhitespace.consume().text;
 
     var attributes: Array<HtmlAttributeSegment> = [];
@@ -69,7 +74,7 @@ class Parser {
       this.iterator.nowhitespace.consume('/');
       this.iterator.nowhitespace.consume('>');
 
-      return new HtmlSegment(tagName, true, whitespaceBeforeClosing, attributes);
+      return new HtmlSegment(tagName, leadingWhitespace, true, whitespaceBeforeClosing, attributes);
     }
 
     this.iterator.nowhitespace.consume('>');
@@ -86,7 +91,7 @@ class Parser {
 
     this.iterator.nowhitespace.consume('>');
 
-    return new HtmlSegment(tagName, attributes, children);
+    return new HtmlSegment(tagName, leadingWhitespace, attributes, children);
   }
 
   private parseHtmlAttributeSegment(): HtmlAttributeSegment {

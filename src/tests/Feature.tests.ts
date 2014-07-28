@@ -21,7 +21,15 @@ test('sample', function(){
       <li class="@(model.items[i] == model.current ? \'is-current\' : \'\')">@model.items[i]</li>\
     }\
   </ul>',
-  expected = '<h2>Hobbits</h2>  <ul><li>Bilbo</li><li>Fredegar</li><li class="is-current">Frodo</li><li>Meriadoc</li><li>Peregrin</li><li>Samwise</li></ul>';
+  expected = '<h2>Hobbits</h2>\
+  <ul>\
+      <li>Bilbo</li>\
+      <li>Fredegar</li>\
+      <li class="is-current">Frodo</li>\
+      <li>Meriadoc</li>\
+      <li>Peregrin</li>\
+      <li>Samwise</li>\
+  </ul>';
 
 var view = razor.transpile(input),
     instance = new view(),

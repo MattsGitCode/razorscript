@@ -51,7 +51,7 @@ test('razor expression using view model', function() {
 test('razor block with empty html element', function() {
   var view = transpile(// @{<div />}
         new RazorBlock([
-          new Html('div', true, ' ')
+          new Html('div', '', true, ' ')
         ])
       ),
       result = view.execute();
@@ -64,7 +64,7 @@ test('razor if(true) statement expression with empty html element', function() {
         new RazorControlFlowStatement('if',
           new RazorExpression('true'),
           new RazorBlock([
-            new Html('div', true, ' ')
+            new Html('div', '', true, ' ')
           ])
         )
       ),
@@ -78,7 +78,7 @@ test('razor if(false) statement expression with empty html element', function() 
         new RazorControlFlowStatement('if',
           new RazorExpression('false'),
           new RazorBlock([
-            new Html('div', true, ' ')
+            new Html('div', '', true, ' ')
           ])
         )
       ),
@@ -92,7 +92,7 @@ test('razor for loop statement expression with empty html element', function() {
         new RazorControlFlowStatement('for',
           new RazorExpression('var i = 0; i < 2; ++i'),
           new RazorBlock([
-            new Html('div', true, ' ')
+            new Html('div', '', true, ' ')
           ])
         )
       ),
@@ -106,7 +106,7 @@ test('razor for loop statement expression with html element and loop variable', 
         new RazorControlFlowStatement('for',
           new RazorExpression('var i = 0; i < 2; ++i'),
           new RazorBlock([
-            new Html('div', [], [
+            new Html('div', '', [], [
               new RazorExpression('i')
             ])
           ])
@@ -122,7 +122,7 @@ test('razor for loop statement expression with loop variable and view model', fu
         new RazorControlFlowStatement('for',
           new RazorExpression('var i = 0; i < model.d.length; ++i'),
           new RazorBlock([
-            new Html('div', [], [
+            new Html('div', '', [], [
               new RazorExpression('model.d[i]')
             ])
           ])
