@@ -29,7 +29,7 @@ class CodeBuilder {
       throw new Error('invalid operation');
     }
 
-    this.code.push('html.push(' + value +');');
+    this.code.push('html.push(' + value + ');');
   }
 
   public beginAttribute(start: string): void {

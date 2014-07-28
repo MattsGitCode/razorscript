@@ -6,6 +6,7 @@ import RazorBlockSegment = require('../segments/RazorBlock');
 import RazorExpressionSegment = require('../segments/RazorExpression');
 import RazorStatementSegment = require('../segments/RazorStatement');
 import RazorControlFlowStatement = require('../segments/RazorControlFlowStatement');
+import RazorHelper = require('../segments/RazorHelper');
 import IParser = require('../parser/IParser');
 import IView = require('../IView');
 import CodeBuilder = require('./CodeBuilder');
@@ -25,13 +26,13 @@ class Transpiler {
       return this.transpiledClass;
     }
 
+    this.transpiledClass = <new () => IView>new Function();
+
     var parsedSegments = this.parser.parse();
 
     parsedSegments.forEach(segment => {
       this.transpileSegment(segment);
     });
-
-    this.transpiledClass = <new () => IView>new Function();
 
     var executeFunction: Function;
     try {
@@ -55,8 +56,9 @@ class Transpiler {
       this.transpileRazorBlock(<RazorBlockSegment>segment);
     } else if (segment instanceof LiteralSegment) {
       this.code.literal((<LiteralSegment>segment).value);
+    } else if (segment instanceof RazorHelper) {
+      this.transpileRazorHelper(<RazorHelper>segment);
     } else {
-      console.log(segment);
       var type = /function (.{1,})\(/.exec(segment.constructor.toString())[1]
       throw new Error('transpileSegment(' + type + '): not implemented');
     }
@@ -108,6 +110,24 @@ class Transpiler {
     segment.statements.forEach(s => {
       this.transpileSegment(s);
     });
+  }
+
+  private transpileRazorHelper(segment: RazorHelper): void {
+    var originalCodeBuilder = this.code;
+    this.code = new CodeBuilder();
+
+    this.transpileRazorBlock(segment.block);
+
+    var helperFunction: Function;
+    try {
+      helperFunction = new Function(segment.parameters, this.code.toString());
+    } catch (e) {
+      throw new Error('Syntax error in transpiled code for helper ' + segment.name);
+    }
+
+    this.transpiledClass.prototype[segment.name] = helperFunction;
+
+    this.code = originalCodeBuilder;
   }
 }
 
