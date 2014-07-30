@@ -1,4 +1,4 @@
-#TypeScript Razor
+#RazorScript
 
 I like Razor and wanted to use it in JavaScript, so I've started this project
 in order to do so. The markup is parsed and transpiled into a JavaScript class
