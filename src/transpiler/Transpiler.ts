@@ -257,7 +257,7 @@ class Transpiler {
     try {
       helperFunction = Function.apply(null, functionCreationParams);
     } catch (e) {
-      throw new Error('Syntax error in transpiled code for helper ' + segment.name);
+      throw new Error('Syntax error in transpiled code for helper ' + segment.name + ': ' + this.code.toString());
     }
 
     this.transpiledClass.prototype[segment.name] = helperFunction;
