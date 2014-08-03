@@ -1,6 +1,6 @@
 import TokenIterator = require('../tokens/TokenIterator');
 import Parser = require('../parser/Parser');
-import Segment = require('../segments/ISegment');
+import Segment = require('../segments/Segment');
 import RazorHelper = require('../segments/RazorHelper');
 import HtmlSegment = require('../segments/Html');
 
@@ -17,7 +17,7 @@ test('empty helper with no parameters', function() {
   ok(output[0] instanceof RazorHelper);
   var helper = <RazorHelper>output[0];
   equal(helper.name, 'bbq');
-  equal(helper.parameters, '');
+  equal(helper.parameters.length, 0);
   equal(helper.block.statements.length, 0);
 });
 
@@ -32,7 +32,8 @@ test('empty helper with single parameter', function() {
   ok(output[0] instanceof RazorHelper);
   var helper = <RazorHelper>output[0];
   equal(helper.name, 'bbq');
-  equal(helper.parameters, 'coal');
+  equal(helper.parameters.length, 1);
+  equal(helper.parameters[0], 'coal');
   equal(helper.block.statements.length, 0);
 });
 
@@ -47,7 +48,8 @@ test('empty helper with two parameters', function() {
   ok(output[0] instanceof RazorHelper);
   var helper = <RazorHelper>output[0];
   equal(helper.name, 'bbq');
-  equal(helper.parameters, 'coal, burgers');
+  equal(helper.parameters[0], 'coal');
+  equal(helper.parameters[1], 'burgers');
   equal(helper.block.statements.length, 0);
 });
 
@@ -62,7 +64,7 @@ test('non-empty helper with no parameters', function() {
   ok(output[0] instanceof RazorHelper);
   var helper = <RazorHelper>output[0];
   equal(helper.name, 'bbq');
-  equal(helper.parameters, '');
+  equal(helper.parameters.length, 0);
   equal(helper.block.statements.length, 1);
   ok(helper.block.statements[0] instanceof HtmlSegment);
 });

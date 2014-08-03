@@ -1,81 +1,77 @@
 enum CodeBuilderState {
-  Normal,
-  AttributeClosure,
+  Markup,
+  Code,
 }
 
 function escape(val: string): string {
-  return val.replace('\"', '\\\"');
+  return val.replace('\"', '\\\"').replace('\n', '\\n');
 }
 
 class CodeBuilder {
   private code: Array<string>;
   private state: CodeBuilderState;
+  private previousState: CodeBuilderState;
+  private localVariables: Array<string>;
 
   constructor(){
     this.code = [];
-    this.state = CodeBuilderState.Normal;
+    this.state = CodeBuilderState.Markup;
+    this.localVariables = [];
+  }
+
+  public declareVariable(name: string): void {
+    this.localVariables.push(name);
+  }
+
+  public isVariableDeclared(name: string): boolean {
+    return this.localVariables.indexOf(name) !== -1;
+  }
+
+  public startMarkup(): void {
+    this.state = CodeBuilderState.Markup;
+  }
+
+  public startCode(): void {
+    this.state = CodeBuilderState.Code;
   }
 
   public literal(value: string): void {
-    if (this.state !== CodeBuilderState.Normal) {
-      throw new Error('invalid operation');
+    if (this.state === CodeBuilderState.Markup) {
+      this.code.push('html.push("' + escape(value) + '");');
+    } else {
+      this.code.push(value);
     }
-
-    this.code.push('html.push("' + escape(value) + '");');
   }
 
   public expression(value: string): void {
-    if (this.state !== CodeBuilderState.Normal) {
-      throw new Error('invalid operation');
-    }
+    this.code.push(value);
+  }
 
-    this.code.push('html.push(' + value + ');');
+  public directCode(c: string): void {
+    this.code.push(c);
   }
 
   public beginAttribute(start: string): void {
-    this.state = CodeBuilderState.AttributeClosure;
-    this.code.push('(function(){');
+    this.code.push('(function(parentHtml){');
     this.code.push('var attrStart = "' + escape(start) + '";');
-    this.code.push('var attrVals = [];')
+    this.code.push('var html = [];')
   }
 
   public endAttribute(end: string): void {
-    if (this.state !== CodeBuilderState.AttributeClosure) {
-      throw new Error('no attribute closure is currently open');
-    }
-
-    this.code.push('var value = attrVals.filter(function(x){return !!x;}).join(" ");');
+    this.code.push('var value = html.filter(function(x){return !!x;}).join(" ");');
     this.code.push('if (!!value){');
-    this.code.push('html.push(attrStart + value + "' + escape(end) + '");');
+    this.code.push('parentHtml.push(attrStart + value + "' + escape(end) + '");');
     this.code.push('}');
 
-    this.code.push('}());');
-
-    this.state = CodeBuilderState.Normal;
+    this.code.push('}.call(this, html));');
   }
 
-  public attributeLiteralValue(value: string): void {
-    if (this.state !== CodeBuilderState.AttributeClosure) {
-      throw new Error('no attribute closure is currently open');
-    }
-
-    this.code.push('attrVals.push("' + escape(value) + '");');
+  public openScope(): void {
+    this.code.push('html.push(');
   }
 
-  public attributeExpressionValue(expression: string): void {
-    if (this.state !== CodeBuilderState.AttributeClosure) {
-      throw new Error('no attribute closure is currently open');
-    }
-
-    this.code.push('attrVals.push(' + expression + ');');
-  }
-
-  public beginFlow(type: string, expression: string): void {
-    this.code.push(type + '(' + expression + '){');
-  }
-
-  public endFlow(): void {
-    this.code.push('}');
+  public closeScope(): void {
+    this.code.push(');');
   }
 
   public toString(): string {

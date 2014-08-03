@@ -1,11 +1,6 @@
-import ISegment = require('./ISegment');
+import Segment = require('./Segment');
 
-class RazorExpression implements ISegment {
-  public expression: string;
-
-  constructor(expression: string) {
-    this.expression = expression;
-  }
+class RazorExpression extends Segment {
 }
 
 export = RazorExpression;

@@ -1,11 +1,12 @@
-import ISegment = require('./ISegment');
+import Segment = require('./Segment');
 
-class HtmlAttribute implements ISegment {
+class HtmlAttribute extends Segment {
   public name: string;
   public quoteChar: string;
-  public values: Array<ISegment>;
+  public values: Array<Segment>;
   public whitespacePrefix: string;
-  constructor(name: string, quoteChar: string, whitespacePrefix: string, values: Array<ISegment>) {
+  constructor(name: string, quoteChar: string, whitespacePrefix: string, values: Array<Segment>) {
+    super();
     this.name = name;
     this.quoteChar = quoteChar;
     this.whitespacePrefix = whitespacePrefix;

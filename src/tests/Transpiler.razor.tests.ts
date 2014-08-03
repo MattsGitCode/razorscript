@@ -1,29 +1,41 @@
-import ISegment = require('../segments/ISegment');
+import Segment = require('../segments/Segment');
 import Html = require('../segments/Html');
 import HtmlAttribute = require('../segments/HtmlAttribute');
 import Literal = require('../segments/Literal');
 import RazorBlock = require('../segments/RazorBlock');
-import RazorExpression = require('../segments/RazorExpression');
+import RazorVariableAccess = require('../segments/RazorVariableAccess');
+import RazorLiteral = require('../segments/RazorLiteral');
+import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorStatement = require('../segments/RazorStatement');
-import RazorControlFlowStatement = require('../segments/RazorControlFlowStatement')
+import RazorIfStatement = require('../segments/RazorIfStatement');
+import RazorForLoop = require('../segments/RazorForLoop');
+import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
+import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
+import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import IView = require('../IView');
 
 import Transpiler = require('../transpiler/Transpiler');
 
 QUnit.module('Transpiler Razor');
 
-var transpile = function(...segments: Array<ISegment>): IView {
+var transpile = function(model?: any, ...segments: Array<Segment>): IView {
+  if (model instanceof Segment) {
+    segments.unshift(<Segment>model);
+    model = null;
+  }
   var parser = { parse: function() { return segments; } },
       transpiler = new Transpiler(parser),
       viewClass = transpiler.transpile(),
-      viewInstance = new viewClass();
+      viewInstance = new viewClass(model);
 
   return viewInstance;
 };
 
 test('razor expression with literal string', function() {
   var view = transpile(// @("hello")
-        new RazorExpression('"hello"')
+        new RazorLiteral('"hello"')
       ),
       result = view.execute();
 
@@ -32,7 +44,7 @@ test('razor expression with literal string', function() {
 
 test('razor expression with literal number', function() {
   var view = transpile(// @(42)
-        new RazorExpression('42')
+        new RazorLiteral('42')
       ),
       result = view.execute();
 
@@ -40,10 +52,14 @@ test('razor expression with literal number', function() {
 });
 
 test('razor expression using view model', function() {
-  var view = transpile(// @model.bilbo
-        new RazorExpression('model.bilbo')
-      ),
-      result = view.execute({ bilbo: 'baggins' });
+  var model = { bilbo: 'baggins' },
+      view = transpile(// @model.bilbo
+        model,
+        new RazorVariableAccess('bilbo',
+          new RazorVariableAccess('model', null))
+      );
+
+  var result = view.execute();
 
   equal(result, 'baggins');
 });
@@ -59,10 +75,24 @@ test('razor block with empty html element', function() {
   equal(result, '<div />');
 });
 
+test('razor block with variable assignment', function() {
+  var view = transpile(// @{var x = 42;}
+        new RazorBlock([
+          new RazorVariableAssignment(
+            new RazorVariableAccess('x'),
+            new RazorLiteral('42')
+          )
+        ])
+      ),
+      code = view.execute.toString();
+
+  ok(/;var x = 42;/.test(code), 'expected execute body to contain var x = 42;');
+});
+
 test('razor if(true) statement expression with empty html element', function() {
   var view = transpile(// @if(true){<div />}
-        new RazorControlFlowStatement('if',
-          new RazorExpression('true'),
+        new RazorIfStatement(
+          new RazorLiteral('true'),
           new RazorBlock([
             new Html('div', '', ' ', true)
           ])
@@ -75,8 +105,8 @@ test('razor if(true) statement expression with empty html element', function() {
 
 test('razor if(false) statement expression with empty html element', function() {
   var view = transpile(// @if(false){<div />}
-        new RazorControlFlowStatement('if',
-          new RazorExpression('false'),
+        new RazorIfStatement(
+          new RazorLiteral('false'),
           new RazorBlock([
             new Html('div', '', ' ', true)
           ])
@@ -89,25 +119,49 @@ test('razor if(false) statement expression with empty html element', function() 
 
 test('razor for loop statement expression with empty html element', function() {
   var view = transpile(// @for(var i = 0; i < 2; ++i){ <div /> }
-        new RazorControlFlowStatement('for',
-          new RazorExpression('var i = 0; i < 2; ++i'),
+        new RazorForLoop(
+          new RazorVariableAssignment(
+            new RazorVariableAccess('i'),
+            new RazorLiteral('0')
+          ),
+          new RazorBinaryExpression(
+            new RazorVariableAccess('i'),
+            '<',
+            new RazorLiteral('2')
+          ),
+          new RazorUnaryExpression(
+            new RazorVariableAccess('i'),
+            '++'
+          ),
           new RazorBlock([
             new Html('div', '', ' ', true)
           ])
         )
-      ),
-      result = view.execute();
+      );
+  var result = view.execute();
 
   equal(result, '<div /><div />');
 });
 
 test('razor for loop statement expression with html element and loop variable', function() {
   var view = transpile(// @for(var i = 0; i < 2; ++i){ <div>@i</div> }
-        new RazorControlFlowStatement('for',
-          new RazorExpression('var i = 0; i < 2; ++i'),
+        new RazorForLoop(
+          new RazorVariableAssignment(
+            new RazorVariableAccess('i'),
+            new RazorLiteral('0')
+          ),
+          new RazorBinaryExpression(
+            new RazorVariableAccess('i'),
+            '<',
+            new RazorLiteral('2')
+          ),
+          new RazorUnaryExpression(
+            new RazorVariableAccess('i'),
+            '++'
+          ),
           new RazorBlock([
             new Html('div', '', '', [], [
-              new RazorExpression('i')
+              new RazorVariableAccess('i')
             ])
           ])
         )
@@ -119,16 +173,64 @@ test('razor for loop statement expression with html element and loop variable', 
 
 test('razor for loop statement expression with loop variable and view model', function() {
   var view = transpile(// @for(var i = 0; i < model.d.length; ++i){ <div>@model.d[i]</div> }
-        new RazorControlFlowStatement('for',
-          new RazorExpression('var i = 0; i < model.d.length; ++i'),
+        { d: ['alpha', 'bravo', 'charlie'] },
+        new RazorForLoop(
+          new RazorVariableAssignment(
+            new RazorVariableAccess('i'),
+            new RazorLiteral('0')
+          ),
+          new RazorBinaryExpression(
+            new RazorVariableAccess('i'),
+            '<',
+            new RazorVariableAccess('length',
+              new RazorVariableAccess('d',
+                new RazorVariableAccess('model')
+              )
+            )
+          ),
+          new RazorUnaryExpression(
+            new RazorVariableAccess('i'),
+            '++'
+          ),
           new RazorBlock([
             new Html('div', '', '', [], [
-              new RazorExpression('model.d[i]')
+              new RazorArrayAccess(
+                new RazorVariableAccess('d',
+                  new RazorVariableAccess('model')
+                ),
+                new RazorVariableAccess('i')
+              )
             ])
           ])
         )
       ),
-      result = view.execute({ d: ['alpha', 'bravo', 'charlie'] });
+      result = view.execute();
 
   equal(result, '<div>alpha</div><div>bravo</div><div>charlie</div>');
+});
+
+test('variable access without declaration is transpiled to access of a this property', function(){
+  var view = transpile(
+        new RazorBlock([
+          new RazorVariableAccess('test')
+        ])
+      ),
+      executeBody = view.execute.toString();
+
+  ok(/push\(this\.test\)/.test(executeBody), 'expected execute body to contain this.test');
+});
+
+test('variable access with previous declaration is transpiled as-is', function(){
+  var view = transpile(
+        new RazorBlock([
+          new RazorVariableAssignment(
+            new RazorVariableAccess('test'),
+            new RazorLiteral('42')
+          ),
+          new RazorVariableAccess('test')
+        ])
+      ),
+      executeBody = view.execute.toString();
+
+  ok(/push\(test\)/.test(executeBody), 'expected execute body to contain push(test)');
 });

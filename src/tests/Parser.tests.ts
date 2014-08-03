@@ -1,13 +1,13 @@
 import TokenIterator = require('../tokens/TokenIterator');
 import Parser = require('../parser/Parser');
-import Segment = require('../segments/ISegment');
+import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
-import RazorBlockSegment = require('../segments/RazorBlock');
-import RazorExpressionSegment = require('../segments/RazorExpression');
-import RazorStatementSegment = require('../segments/RazorStatement');
-import RazorControlFlowStatement = require('../segments/RazorControlFlowStatement');
+import RazorVariableAccess = require('../segments/RazorVariableAccess');
+import RazorMethodCall = require('../segments/RazorMethodCall');
+import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorLiteral = require('../segments/RazorLiteral');
 
 QUnit.module('Parser');
 
@@ -88,13 +88,15 @@ test('single html element with simple razor in attribute', function () {
     output = parser.parse();
 
     var attribute: HtmlAttributeSegment = (<HtmlSegment>output[0]).attributes[0];
-
     equal(attribute.values.length, 1);
-    ok(attribute.values[0] instanceof RazorExpressionSegment, 'expected RazorExpressionSegment');
+    ok(attribute.values[0] instanceof RazorVariableAccess, 'expected RazorVariableAccess');
 
-    var razor = <RazorExpressionSegment>attribute.values[0];
-
-    equal(razor.expression, 'model.something');
+    var prop = <RazorVariableAccess>attribute.values[0];
+    equal(prop.name, 'something');
+    ok(prop.object instanceof RazorVariableAccess);
+    var obj = <RazorVariableAccess>prop.object;
+    equal(obj.name, 'model');
+    equal(obj.object, null);
 });
 
 test('single html element with razor array access in attribute', function () {
@@ -108,11 +110,26 @@ test('single html element with razor array access in attribute', function () {
     var attribute: HtmlAttributeSegment = (<HtmlSegment>output[0]).attributes[0];
 
     equal(attribute.values.length, 1);
-    ok(attribute.values[0] instanceof RazorExpressionSegment, 'expected RazorExpressionSegment');
+    ok(attribute.values[0] instanceof RazorVariableAccess, 'expected RazorVariableAccess');
 
-    var razor = <RazorExpressionSegment>attribute.values[0];
+    var bravo = <RazorVariableAccess>attribute.values[0];
+    equal(bravo.name, 'bravo');
+    ok(bravo.object instanceof RazorArrayAccess, 'expected RazorArrayAccess');
 
-    equal(razor.expression, 'model.alpha[0].bravo');
+    var arrayAccess = <RazorArrayAccess>bravo.object;
+    ok(arrayAccess.argument instanceof RazorLiteral, 'expected RazorLiteral');
+    ok(arrayAccess.accessor instanceof RazorVariableAccess, 'expected RazorVariableAccess');
+
+    var arg = <RazorLiteral>arrayAccess.argument;
+    equal(arg.expression, '0');
+
+    var array = <RazorVariableAccess>arrayAccess.accessor;
+    equal(array.name, 'alpha');
+    ok(array.object instanceof RazorVariableAccess, 'expected RazorVariableAccess');
+
+    var model = <RazorVariableAccess>array.object;
+    equal(model.name, 'model');
+    equal(model.object, null);
 });
 
 test('single html element with razor and literals in attribute', function () {
@@ -123,20 +140,18 @@ test('single html element with razor and literals in attribute', function () {
 
     output = parser.parse();
 
-    var attribute: HtmlAttributeSegment = (<HtmlSegment>output[0]).attributes[0];
+    var h = <HtmlSegment>output[0];
+    var a = <HtmlAttributeSegment>h.attributes[0];
+    var l1 = <LiteralSegment>a.values[0];
+    var l2 = <LiteralSegment>a.values[2];
+    var r1 = <RazorVariableAccess>a.values[1];
+    var r2 = <RazorVariableAccess>r1.object;
 
-    equal(attribute.values.length, 3);
-    ok(attribute.values[0] instanceof LiteralSegment, 'expected LiteralSegment');
-    ok(attribute.values[1] instanceof RazorExpressionSegment, 'expected RazorExpressionSegment');
-    ok(attribute.values[2] instanceof LiteralSegment, 'expected LiteralSegment');
-
-    var alpha = <LiteralSegment>attribute.values[0];
-    var razor = <RazorExpressionSegment>attribute.values[1];
-    var bravo = <LiteralSegment>attribute.values[2];
-
-    equal(alpha.value, 'alpha ');
-    equal(razor.expression, 'model.something');
-    equal(bravo.value, ' bravo');
+    equal(l1.value, 'alpha ');
+    equal(l2.value, ' bravo');
+    equal(r1.name, 'something');
+    equal(r2.name, 'model');
+    equal(r2.object, null);
 });
 
 test('single nested html element', function () {
@@ -249,62 +264,4 @@ test('whitespace before closing html tag recorded', function(){
   output = parser.parse();
   var htmlSegment = <HtmlSegment>output[0];
   equal(htmlSegment.whitespaceBeforeClosing, '  ');
-});
-
-test('empty razor block', function(){
-  var input = '@{ }',
-      it = new TokenIterator(input),
-      parser = new Parser(it),
-      output: Array<Segment>;
-
-  output = parser.parse();
-
-  equal(output.length, 1);
-  ok(output[0] instanceof RazorBlockSegment, 'expected RazorBlockSegment');
-
-  var razorBlockSegment = <RazorBlockSegment>output[0];
-  equal(razorBlockSegment.statements.length, 0);
-});
-
-test('razor block with single html element', function(){
-  var input = '@{ <div /> }',
-      it = new TokenIterator(input),
-      parser = new Parser(it),
-      output: Array<Segment>;
-
-  output = parser.parse();
-
-  var razorBlockSegment = <RazorBlockSegment>output[0];
-  equal(razorBlockSegment.statements.length, 1);
-  ok(razorBlockSegment.statements[0] instanceof HtmlSegment, 'expected HtmlSegment');
-});
-
-test('html inside razor block', function(){
-  var input = '@if (true) { <div /> }',
-      it = new TokenIterator(input),
-      parser = new Parser(it),
-      output: Array<Segment>;
-
-  output = parser.parse();
-
-  ok(output[0] instanceof RazorControlFlowStatement, 'expected RazorControlFlowStatement');
-  var razorSegment = <RazorControlFlowStatement>output[0];
-  equal(razorSegment.type, 'if');
-  equal(razorSegment.expression.expression, 'true');
-  equal(razorSegment.block.statements.length, 1);
-  ok(razorSegment.block.statements[0] instanceof HtmlSegment, 'expected HtmlSegment inside block');
-});
-
-test('empty for loop razor expression', function(){
-  var input = '@for(var i = 0; i < 2; ++i) { }',
-      it = new TokenIterator(input),
-      parser = new Parser(it),
-      output: Array<Segment>;
-
-  output = parser.parse();
-
-  ok(output[0] instanceof RazorControlFlowStatement, 'expected RazorControlFlowStatement');
-  var statement = <RazorControlFlowStatement>output[0];
-  equal(statement.type, 'for');
-  equal(statement.expression.expression, 'var i = 0; i < 2; ++i');
 });

@@ -1,17 +1,17 @@
-import ISegment = require('../segments/ISegment');
+import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
 import RazorBlockSegment = require('../segments/RazorBlock');
-import RazorExpressionSegment = require('../segments/RazorExpression');
 import RazorStatementSegment = require('../segments/RazorStatement');
+import RazorLiteral = require('../segments/RazorLiteral');
 import IView = require('../IView');
 
 import Transpiler = require('../transpiler/Transpiler');
 
 QUnit.module('Transpiler HTML');
 
-var transpile = function(...segments: Array<ISegment>): IView {
+var transpile = function(...segments: Array<Segment>): IView {
   var parser = { parse: function() { return segments; } },
       transpiler = new Transpiler(parser),
       viewClass = transpiler.transpile(),
@@ -52,7 +52,7 @@ test('empty attribute removed from tag', function() {
   var view = transpile(
         new HtmlSegment('div', '', '', true, [
           new HtmlAttributeSegment('class', '\'', ' ', [
-            new RazorExpressionSegment('null')
+            new RazorLiteral('null')
           ])
         ])
       ),
@@ -97,7 +97,7 @@ test('whitespace prefixing attribute removed if attribute is removed', function(
   var view = transpile(//'<div     class="@(null)" />'),
         new HtmlSegment('div', '', ' ', true, [
           new HtmlAttributeSegment('class', '"', '      ', [
-            new RazorExpressionSegment('null')
+            new RazorLiteral('null')
           ])
         ])
       ),
@@ -112,4 +112,12 @@ test('leading whitespace preserved in output of html', function(){
       ),
       result = view.execute();
   equal(result, '    <div/>')
+});
+
+test('newlines in whitespace preserved', function() {
+  var view = transpile(
+        new HtmlSegment('div', ' \n ', '', true)
+      ),
+      result = view.execute();
+  equal(result, ' \n <div/>')
 });

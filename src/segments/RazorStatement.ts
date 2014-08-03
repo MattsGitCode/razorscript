@@ -1,6 +1,6 @@
-import ISegment = require('./ISegment');
+import Segment = require('./Segment');
 
-class RazorStatement implements ISegment {
+class RazorStatement extends Segment {
 
 }
 

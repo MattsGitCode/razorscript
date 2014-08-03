@@ -1,9 +1,10 @@
-import ISegment = require('./ISegment');
+import Segment = require('./Segment');
 
-class Literal implements ISegment {
+class Literal extends Segment {
   public value: string;
 
   constructor(literal: string){
+    super();
     this.value = literal;
   }
 }

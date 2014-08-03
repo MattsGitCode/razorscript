@@ -1,4 +1,4 @@
-import Segment = require('../segments/ISegment')
+import Segment = require('../segments/Segment')
 
 interface IParser {
   parse(): Array<Segment>;

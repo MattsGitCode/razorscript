@@ -1,13 +1,22 @@
 import ITokenIterator = require('../tokens/ITokenIterator');
 import TokenType = require('../tokens/TokenType');
-import ISegment = require('../segments/ISegment');
+import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
-import RazorBlockSegment = require('../segments/RazorBlock');
-import RazorExpressionSegment = require('../segments/RazorExpression');
-import RazorStatementSegment = require('../segments/RazorStatement');
-import RazorControlFlowStatement = require('../segments/RazorControlFlowStatement');
+import RazorBlock = require('../segments/RazorBlock');
+import RazorExpression = require('../segments/RazorExpression');
+import RazorVariableAccess = require('../segments/RazorVariableAccess');
+import RazorMethodCall = require('../segments/RazorMethodCall');
+import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorLiteral = require('../segments/RazorLiteral');
+import RazorStatement = require('../segments/RazorStatement');
+import RazorIfStatement = require('../segments/RazorIfStatement');
+import RazorForLoop = require('../segments/RazorForLoop');
+import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
+import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
+import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import RazorHelper = require('../segments/RazorHelper');
 import IParser = require('./IParser');
 
@@ -15,21 +24,21 @@ var keywords: Array<string> = ['if', 'do', 'while', 'for', 'foreach'];
 
 class Parser {
   private iterator: ITokenIterator;
-  public segments: Array<ISegment>;
+  public segments: Array<Segment>;
 
   constructor(iterator: ITokenIterator) {
     this.iterator = iterator;
     this.segments = [];
   }
 
-  public parse(): Array<ISegment> {
+  public parse(): Array<Segment> {
     while (!this.iterator.eof) {
       this.segments.push(this.parseSegment());
     }
     return this.segments;
   }
 
-  private parseSegment(): ISegment {
+  private parseSegment(): Segment {
     if (this.iterator.nowhitespace.peek.isRazor) {
       return this.parseRazorSegment();
     }
@@ -80,7 +89,7 @@ class Parser {
 
     this.iterator.nowhitespace.consume('>');
 
-    var children: Array<ISegment> = [];
+    var children: Array<Segment> = [];
     while (!(this.iterator.nowhitespace.peek.text === '<' && this.iterator.nowhitespace.peekNext.text === '/')) {
       children.push(this.parseSegment());
     }
@@ -106,7 +115,7 @@ class Parser {
 
     var quoteChar = this.iterator.nowhitespace.consume(['"', "'"]).text;
 
-    var valueSegments: Array<ISegment> = [];
+    var valueSegments: Array<Segment> = [];
     while (this.iterator.peek.text != quoteChar) {
       if (this.iterator.peek.isRazor) {
         valueSegments.push(this.parseRazorSegment());
@@ -120,18 +129,20 @@ class Parser {
     return new HtmlAttributeSegment(name, quoteChar, whitespacePrefix, valueSegments);
   }
 
-  private parseRazorSegment(): ISegment {
-    var segment: ISegment;
+  private parseRazorSegment(): Segment {
+    var segment: Segment;
 
     this.iterator.nowhitespace.consume('@');
 
-    if (this.iterator.peek.isRazor) {
+    if (this.iterator.peek.isWhitespace) {
+      throw new Error('@ cannot be followed by whitespace')
+    } if (this.iterator.peek.isRazor) {
       segment = new LiteralSegment('@');
       this.iterator.consume();
     } else if (this.iterator.peek.text === 'helper') {
       segment = this.parseRazorHelper();
     } else if (keywords.indexOf(this.iterator.peek.text) !== -1) {
-      segment = this.parseControlFlowStatement();
+      segment = this.parseRazorStatement();
     } else if (this.iterator.peek.isAlpha) {
       segment = this.parseRazorSimpleExpression();
     } else if (this.iterator.peek.text === '(') {
@@ -145,84 +156,115 @@ class Parser {
     return segment;
   }
 
-  private parseRazorSimpleExpression(): RazorExpressionSegment {
-    var parts: Array<string> = [this.iterator.consume().text];
+  private parseRazorSimpleExpression(): RazorExpression {
+    if (this.iterator.nowhitespace.peek.isNumeric) {
+      return new RazorLiteral(this.iterator.nowhitespace.consume().text);
+    }
+    if (['true','false'].indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
+      return new RazorLiteral(this.iterator.nowhitespace.consume().text);
+    }
+
+    var expression: RazorExpression;
+    if (this.iterator.nowhitespace.peek.isAlpha) {
+      expression = new RazorVariableAccess(this.iterator.nowhitespace.consume().text);
+    } else if (['\'','"'].indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
+      expression = this.parseRazorStringLiteral();
+    } else if (this.iterator.nowhitespace.peek.isNumeric) {
+      expression = this.parseRazorNumberLiteral();
+    } else {
+      throw new Error('not implemented parseRazorSimpleExpresson for token \'' + this.iterator.nowhitespace.peek.text + '\' at ' + this.iterator.peek.pointer);
+    }
 
     while(!this.iterator.eof) {
       if (this.iterator.peek.text === '.' && this.iterator.peekNext.isAlpha) {
-        parts.push(this.iterator.consume().text);
-        parts.push(this.iterator.consume().text);
+        this.iterator.consume();
+        expression = new RazorVariableAccess(this.iterator.consume().text, expression);
       } else if (this.iterator.peek.text === '[') {
-        parts.push(this.iterator.consume().text);
-        parts.push(this.parseRazorSimpleExpression().expression);
-        parts.push(this.iterator.consume(']').text);
+        this.iterator.consume();
+        expression = new RazorArrayAccess(expression, this.parseRazorSimpleExpression());
+        this.iterator.consume(']');
       } else if (this.iterator.peek.text === '(') {
-        parts.push(this.iterator.consume().text);
+        this.iterator.consume();
+        var args: Array<RazorExpression> = [];
         var isFirstParam = true;
         while(this.iterator.nowhitespace.peek.text !== ')') {
           if (isFirstParam) {
-            parts.push(this.parseRazorSimpleExpression().expression);
             isFirstParam = false;
           } else {
-            parts.push(this.iterator.nowhitespace.consume(',').text);
-            parts.push(this.parseRazorSimpleExpression().expression);
+            this.iterator.nowhitespace.consume(',');
           }
+          args.push(this.parseRazorSimpleExpression());
         }
-        parts.push(this.iterator.nowhitespace.consume(')').text);
+        this.iterator.nowhitespace.consume(')');
+
+        expression = new RazorMethodCall(expression, args);
       } else {
         break;
       }
     }
 
-    return new RazorExpressionSegment(parts.join(''));
+    return expression;
   }
 
-  private parseRazorExpression(stopChar?: string): RazorExpressionSegment {
-    var parts: Array<string> = [];
+  private parseRazorStringLiteral(): RazorLiteral {
+    var quote = this.iterator.nowhitespace.consume().text;
+    var value = [];
+    while(this.iterator.peek.text !== quote) {
+      value.push(this.iterator.consume().text);
+    }
+    this.iterator.consume(quote);
 
-    var stopTypes = { '(': ')', '[': ']', '{': '}' };
+    return new RazorLiteral(quote + value.join('') + quote);
+  }
 
-    var stop: string;
-    if (!stopChar && stopTypes[this.iterator.nowhitespace.peek.text]) {
-      var open = this.iterator.nowhitespace.consume().text;
-      parts.push(open);
-      stop = stopTypes[open];
+  private parseRazorNumberLiteral(): RazorLiteral {
+    var number = this.iterator.nowhitespace.consume().text;
+    return new RazorLiteral(number);
+  }
+
+  private parseRazorExpression(): RazorExpression {
+    if (this.iterator.nowhitespace.peek.text === '++'){
+      var op = this.iterator.nowhitespace.consume().text;
+      var expression = this.parseRazorSimpleExpression();
+      return new RazorUnaryExpression(expression, op);
     }
 
-    while (!this.iterator.eof) {
-      if (this.iterator.peek.text === stopChar) {
-        break;
-      }
-      if (this.iterator.peek.text === stop) {
-        parts.push(this.iterator.consume().text);
-        break;
-      }
-      if (this.iterator.peek.isWhitespace && !stop && !stopChar) {
-        break;
-      }
+    var inBrackets = false;
+    var expression: RazorExpression;
 
-      if (['(','[','{'].indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
-        var nested = this.parseRazorExpression();
-        parts.push(nested.expression);
-      } else if (this.iterator.peek.isWhitespace
-            || this.iterator.peek.isAlpha
-            || this.iterator.peek.isNumeric
-            || ['.', '=', ';', '<', '>', '++', '==', '?', ':', '\'', '-', ','].indexOf(this.iterator.peek.text) !== -1) {
-        parts.push(this.iterator.consume().text);
-      } else if (!stop) {
-        break;
+    if (this.iterator.nowhitespace.peek.text === '(') {
+      this.iterator.nowhitespace.consume();
+      inBrackets = true;
+    }
+
+    var expression = this.parseRazorSimpleExpression();
+
+    var ops = ['++','<','>','==','?'];
+    while(ops.indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
+      var op = this.iterator.nowhitespace.consume().text;
+      if (op === '?') {
+        var trueExpression = this.parseRazorSimpleExpression();
+        this.iterator.nowhitespace.consume(':');
+        var falseExpression = this.parseRazorSimpleExpression();
+        expression = new RazorTernaryExpression(expression, trueExpression, falseExpression);
       } else {
-        throw new Error('unexpected char ' + this.iterator.peek.text);
+        expression = new RazorBinaryExpression(expression, op, this.parseRazorSimpleExpression());
       }
     }
 
-    return new RazorExpressionSegment(parts.join(''));
+
+
+    if (inBrackets) {
+      this.iterator.nowhitespace.consume(')');
+    }
+
+    return expression;
   }
 
-  private parseRazorBlock(): RazorBlockSegment {
+  private parseRazorBlock(): RazorBlock {
     this.iterator.nowhitespace.consume('{');
 
-    var statements: Array<ISegment> = [];
+    var statements: Array<Segment> = [];
 
     while(this.iterator.nowhitespace.peek.text !== '}') {
       var statement = this.parseRazorStatement();
@@ -231,41 +273,99 @@ class Parser {
 
     this.iterator.nowhitespace.consume('}');
 
-    return new RazorBlockSegment(statements);
+    return new RazorBlock(statements);
   }
 
-  private parseRazorStatement(): ISegment {
+  private parseRazorStatement(): Segment {
     if (this.iterator.nowhitespace.peek.text === '<') {
       return this.parseHtmlSegment();
     }
 
-    throw new Error('parseRazorStatement: not implemented');
+    return this.parseRazorCodeStatement();
   }
 
-  private parseControlFlowStatement(): RazorControlFlowStatement {
-    var type: string,
-        expression: RazorExpressionSegment,
-        block: RazorBlockSegment;
+  private parseRazorCodeStatement(): Segment {
+    if (this.iterator.nowhitespace.peek.text === 'if') {
+      return this.parseIfStatement();
+    }
+    if (this.iterator.nowhitespace.peek.text === 'var') {
+      var expression = this.parseVariableAssignment();
+      this.iterator.consume(';');
+      return expression;
+    }
+    if (this.iterator.nowhitespace.peek.text === 'for') {
+      return this.parseForLoop();
+    }
 
-    type = this.iterator.nowhitespace.consume().text;
+    var expression = this.parseRazorExpression();
+    this.iterator.nowhitespace.consume(';');
+    return expression;
+  }
 
+  private parseIfStatement(): RazorStatement {
+    var test: RazorExpression,
+        body: RazorBlock;
+
+    this.iterator.nowhitespace.consume('if');
     this.iterator.nowhitespace.consume('(');
 
-    expression = this.parseRazorExpression(')');
+    test = this.parseRazorSimpleExpression();
 
     this.iterator.nowhitespace.consume(')');
-    block = this.parseRazorBlock();
 
-    return new RazorControlFlowStatement(type, expression, block);
+    body = this.parseRazorBlock();
+
+    return new RazorIfStatement(test, body);
+  }
+
+  private parseVariableAssignment(): RazorStatement {
+    this.iterator.nowhitespace.consume('var');
+
+    var leftSide = this.parseRazorSimpleExpression();
+    if (leftSide instanceof RazorVariableAccess !== true) {
+      throw new Error('expected variable on left side of assignment but found ' + leftSide.getType());
+    }
+
+    this.iterator.nowhitespace.consume('=');
+    var expression = this.parseRazorSimpleExpression();
+
+    return new RazorVariableAssignment(<RazorVariableAccess>leftSide, expression);
+  }
+
+  private parseForLoop(): RazorStatement {
+    this.iterator.nowhitespace.consume('for');
+    this.iterator.nowhitespace.consume('(');
+
+    var initialisation = this.parseVariableAssignment();
+    this.iterator.nowhitespace.consume(';');
+    var condition = this.parseRazorExpression();
+    this.iterator.nowhitespace.consume(';');
+    var iteration = this.parseRazorExpression();
+
+    this.iterator.nowhitespace.consume(')');
+    var body = this.parseRazorBlock();
+
+    return new RazorForLoop(initialisation, condition, iteration, body);
   }
 
   private parseRazorHelper(): RazorHelper {
     this.iterator.consume('helper');
 
     var name = this.iterator.nowhitespace.consume(TokenType.alphanumeric).text;
+    var parameters: Array<string> = [];
     this.iterator.nowhitespace.consume('(');
-    var parameters = this.parseRazorExpression(')').expression;
+    var isFirst = true;
+    while(this.iterator.nowhitespace.peek.text !== ')') {
+      if (isFirst){
+        isFirst = false;
+      } else {
+        this.iterator.nowhitespace.consume(',');
+      }
+
+      parameters.push(this.iterator.nowhitespace.consume(TokenType.alphanumeric).text);
+    }
     this.iterator.nowhitespace.consume(')');
+
     var block = this.parseRazorBlock();
 
     return new RazorHelper(name, parameters, block);

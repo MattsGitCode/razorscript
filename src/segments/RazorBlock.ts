@@ -1,9 +1,10 @@
-import ISegment = require('./ISegment');
+import Segment = require('./Segment');
 
-class RazorBlock implements ISegment {
-  public statements: Array<ISegment>;
+class RazorBlock extends Segment {
+  public statements: Array<Segment>;
 
-  constructor(statements: Array<ISegment>){
+  constructor(statements: Array<Segment>){
+    super();
     this.statements = statements;
   }
 }

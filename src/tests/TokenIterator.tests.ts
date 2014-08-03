@@ -4,6 +4,47 @@ import TokenType = require('../tokens/TokenType');
 
 QUnit.module('TokenIterator');
 
+test('reports correct column', function() {
+  var it = new TokenIterator('a b');
+  it.consume('a');
+  var pointer = it.nowhitespace.consume('b').pointer;
+
+  equal(pointer.column, 2);
+});
+
+test('reports correct column across multi-character tokens', function() {
+  var it = new TokenIterator('ab c');
+  it.consume('ab');
+  var pointer = it.nowhitespace.consume('c').pointer;
+
+  equal(pointer.column, 3);
+});
+
+test('reports correct line numbers', function() {
+  var it = new TokenIterator('a\nb');
+  it.consume('a');
+  var pointer = it.nowhitespace.consume('b').pointer;
+
+  equal(pointer.line, 1);
+});
+
+test('reports correct column after new line', function() {
+  var it = new TokenIterator('a\nb');
+  it.consume('a');
+  var pointer = it.nowhitespace.consume('b').pointer;
+
+  equal(pointer.column, 0);
+});
+
+test('reports correct line and column after new line followed by whitespace', function() {
+  var it = new TokenIterator('a\n b');
+  it.consume('a');
+  var pointer = it.nowhitespace.consume('b').pointer;
+
+  equal(pointer.line, 1);
+  equal(pointer.column, 1);
+});
+
 test('simple html token test', function () {
     var input = '<div></div>',
         it = new TokenIterator(input);

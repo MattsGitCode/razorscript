@@ -130,12 +130,17 @@ class TokenIterator implements ITokenIterator {
     }
 
     tokenPointer = pointer.clone();
-
     nextPointer = tokenPointer.clone();
-    nextPointer.next();
 
     thisChar = razor[tokenPointer.index];
     currentTokenChars = thisChar;
+
+    if (thisChar === '\n') {
+      nextPointer.nextLine();
+    } else {
+      nextPointer.next();
+    }
+
 
     if (nextPointer.index < razor.length) {
       nextChar = razor[nextPointer.index];
