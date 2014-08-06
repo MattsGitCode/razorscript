@@ -25,7 +25,7 @@ that can be instantiated and executed with a viewmodel.
 #####Code
 
 ```js
-var razor = require('./razor.js'),
+var razor = require('razorscript'),
     view = razor.transpileFile('MyFirstView.jshtml'),
     model = {
       title: 'Hobbits',
