@@ -11,7 +11,7 @@ import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
-import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
@@ -80,8 +80,8 @@ test('razor block with empty html element', function() {
 test('razor block with variable assignment', function() {
   var view = transpile(// @{var x = 42;}
         new RazorBlock([
-          new RazorVariableAssignment(
-            new RazorVariableAccess('x'),
+          new RazorVariableDeclaration(
+            'x',
             new RazorLiteral('42')
           )
         ])
@@ -122,8 +122,8 @@ test('razor if(false) statement expression with empty html element', function() 
 test('razor for loop statement expression with empty html element', function() {
   var view = transpile(// @for(var i = 0; i < 2; ++i){ <div /> }
         new RazorForLoop(
-          new RazorVariableAssignment(
-            new RazorVariableAccess('i'),
+          new RazorVariableDeclaration(
+            'i',
             new RazorLiteral('0')
           ),
           new RazorBinaryExpression(
@@ -148,8 +148,8 @@ test('razor for loop statement expression with empty html element', function() {
 test('razor for loop statement expression with html element and loop variable', function() {
   var view = transpile(// @for(var i = 0; i < 2; ++i){ <div>@i</div> }
         new RazorForLoop(
-          new RazorVariableAssignment(
-            new RazorVariableAccess('i'),
+          new RazorVariableDeclaration(
+            'i',
             new RazorLiteral('0')
           ),
           new RazorBinaryExpression(
@@ -177,8 +177,8 @@ test('razor for loop statement expression with loop variable and view model', fu
   var view = transpile(// @for(var i = 0; i < model.d.length; ++i){ <div>@model.d[i]</div> }
         { d: ['alpha', 'bravo', 'charlie'] },
         new RazorForLoop(
-          new RazorVariableAssignment(
-            new RazorVariableAccess('i'),
+          new RazorVariableDeclaration(
+            'i',
             new RazorLiteral('0')
           ),
           new RazorBinaryExpression(
@@ -225,10 +225,7 @@ test('variable access without declaration is transpiled to access of a this prop
 test('variable access with previous declaration is transpiled as-is', function(){
   var view = transpile(
         new RazorBlock([
-          new RazorVariableAssignment(
-            new RazorVariableAccess('test'),
-            new RazorLiteral('42')
-          ),
+          new RazorVariableDeclaration('test'),
           new RazorVariableAccess('test')
         ])
       ),

@@ -10,7 +10,7 @@ import RazorArrayAccess = require('../segments/RazorArrayAccess');
 import RazorLiteral = require('../segments/RazorLiteral');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
-import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorForLoop = require('../segments/RazorForLoop');
@@ -48,6 +48,41 @@ test('razor block with single html element', function(){
 });
 
 test('razor block with variable assignment', function(){
+  var input = '@{ x = 42; }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var razorBlockSegment = <RazorBlockSegment>output[0];
+  equal(razorBlockSegment.statements.length, 1);
+  ok(razorBlockSegment.statements[0] instanceof RazorBinaryExpression, 'expected RazorBinaryExpression');
+  var assignment = <RazorBinaryExpression>razorBlockSegment.statements[0];
+
+  equal((<RazorVariableAccess>assignment.leftOperand).name, 'x');
+
+  ok(assignment.rightOperand instanceof RazorLiteral, 'expected expression to be RazorLiteral');
+  equal((<RazorLiteral>assignment.rightOperand).expression, '42');
+});
+
+test('razor block with variable declaration', function() {
+  var input = '@{ var x; }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var razorBlockSegment = <RazorBlockSegment>output[0];
+  equal(razorBlockSegment.statements.length, 1);
+  ok(razorBlockSegment.statements[0] instanceof RazorVariableDeclaration, 'expected RazorVariableDeclaration');
+  var declaration = <RazorVariableDeclaration>razorBlockSegment.statements[0];
+
+  equal(declaration.name, 'x');
+});
+
+test('razor block with variable declaration and initialisation', function() {
   var input = '@{ var x = 42; }',
       it = new TokenIterator(input),
       parser = new Parser(it),
@@ -57,14 +92,13 @@ test('razor block with variable assignment', function(){
 
   var razorBlockSegment = <RazorBlockSegment>output[0];
   equal(razorBlockSegment.statements.length, 1);
-  ok(razorBlockSegment.statements[0] instanceof RazorVariableAssignment, 'expected RazorVariableAssignment');
-  var assignment = <RazorVariableAssignment>razorBlockSegment.statements[0];
+  ok(razorBlockSegment.statements[0] instanceof RazorVariableDeclaration, 'expected RazorVariableDeclaration');
+  var declaration = <RazorVariableDeclaration>razorBlockSegment.statements[0];
 
-  equal(assignment.variable.name, 'x');
-  equal(assignment.variable.object, null);
+  equal(declaration.name, 'x');
 
-  ok(assignment.expression instanceof RazorLiteral, 'expected expression to be RazorLiteral');
-  equal((<RazorLiteral>assignment.expression).expression, '42');
+  ok(declaration.initialiser instanceof RazorLiteral, 'expected initialiser to be RazorLiteral');
+  equal((<RazorLiteral>declaration.initialiser).expression, '42');
 });
 
 test('razor block with binary statement', function(){
@@ -118,10 +152,10 @@ test('empty for loop razor expression', function(){
   ok(output[0] instanceof RazorForLoop, 'expected RazorForLoop');
   var forLoop = <RazorForLoop>output[0];
 
-  ok(forLoop.initialisation instanceof RazorVariableAssignment, 'expected loop initialisation to be RazorVariableAssignment');
-  var init = <RazorVariableAssignment>forLoop.initialisation;
-  equal(init.variable.name, 'i');
-  equal((<RazorLiteral>init.expression).expression, '0');
+  ok(forLoop.initialisation instanceof RazorVariableDeclaration, 'expected loop initialisation to be RazorVariableDeclaration');
+  var init = <RazorVariableDeclaration>forLoop.initialisation;
+  equal(init.name, 'i');
+  equal((<RazorLiteral>init.initialiser).expression, '0');
 
   ok(forLoop.condition instanceof RazorBinaryExpression, 'expected loop condition to be RazorBinaryExpression');
   var condition = <RazorBinaryExpression>forLoop.condition;
