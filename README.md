@@ -11,8 +11,8 @@ that can be instantiated and executed with a viewmodel.
 ```js
 <h2>@model.title</h2>
 <ul>
-  @for(var i=0;i<model.items.length;++i) {
-    listItem(model.items[i]);
+  @foreach(var name in model.items) {
+    @listItem(name);
   }
 </ul>
 
