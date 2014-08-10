@@ -1,0 +1,13 @@
+@{
+  layout = 'layout.jshtml';
+}
+<h2>@model.title</h2>
+<ul>
+  @foreach(var item in model.items) {
+    listItem(item);
+  }
+</ul>
+
+@helper listItem(name) {
+  <li class="@(name == model.current ? 'is-current' : '')">@name</li>
+}

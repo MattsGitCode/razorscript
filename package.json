@@ -3,7 +3,9 @@
   "version": "0.0.3",
   "description": "Razor Script transpiles razor markup files to Javascript classes",
   "main": "bin/razor.js",
-  "dependencies": {},
+  "dependencies": {
+    "extend": "^1.3.0"
+  },
   "devDependencies": {
     "qunit-cli": "^0.1.4",
     "typescript": "^1.0.1"

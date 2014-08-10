@@ -4,28 +4,21 @@ import fs = require('fs');
 
 QUnit.module('Feature tests');
 
-var testFiles = fs.readdirSync('src/tests/testfiles');
-var tests: Array<string> = [];
-testFiles.forEach(file => {
-  var match = /(.*)_razor.jshtml/.exec(file);
-  if (match){
-    tests.push(match[1]);
-  }
-});
+var tests = fs.readdirSync('src/tests/testfiles');
 
 tests.forEach(name => {
-  var razorFilename = 'src/tests/testfiles/' + name + '_razor.jshtml',
-      modelFilename = 'src/tests/testfiles/' + name + '_model.json',
-      expectedFilename = 'src/tests/testfiles/' + name + '_expected.html';
+  var razorFilename = 'src/tests/testfiles/' + name + '/razor.jshtml',
+      modelFilename = 'src/tests/testfiles/' + name + '/model.json',
+      expectedFilename = 'src/tests/testfiles/' + name + '/expected.html';
 
-  var razorInput = fs.readFileSync(razorFilename, {encoding: 'utf8'}),
-      model = JSON.parse(fs.readFileSync(modelFilename, {encoding: 'utf8'})),
+  var model = JSON.parse(fs.readFileSync(modelFilename, {encoding: 'utf8'})),
       expected = fs.readFileSync(expectedFilename, {encoding: 'utf8'});
 
-  test('feature test ' + name, function() {
-    var view = razor.transpile(razorInput);
-    var instance = new view(model);
-    var output = instance.execute();
+
+  test('feature test ' + name.replace(/_/g, ' '), function() {
+    var viewEngine = new razor.ViewEngine(),
+        output = viewEngine.renderView(razorFilename, model);
+
     equal(output, expected);
   });
 });
@@ -44,9 +37,9 @@ test('transpile file', function(){
       'Samwise',
     ]
   };
-  var view = razor.transpileFile('src/tests/testfiles/01_razor.jshtml'),
+  var view = razor.transpileFile('src/tests/testfiles/for_loop_and_partials/razor.jshtml'),
       instance = new view(model),
-      expected = fs.readFileSync('src/tests/testfiles/01_expected.html', {encoding: 'utf8'});
+      expected = fs.readFileSync('src/tests/testfiles/for_loop_and_partials/expected.html', {encoding: 'utf8'});
   var output = instance.execute();
 
   equal(output, expected);
