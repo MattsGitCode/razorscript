@@ -18,6 +18,7 @@ import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration'
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IParser = require('../parser/IParser');
 import IView = require('../IView');
 import CodeBuilder = require('./CodeBuilder');
@@ -62,6 +63,10 @@ class Transpiler {
       // Don't transpile razor comments
     } else if (segment instanceof HtmlSegment) {
       this.transpileHtmlSegment(<HtmlSegment>segment);
+    } else if (segment instanceof RazorInlineExpression) {
+      this.code.openScope();
+      this.transpileRazorExpression((<RazorInlineExpression>segment).expression);
+      this.code.closeScope();
     } else if (segment instanceof RazorExpression) {
       this.transpileRazorExpression(<RazorExpression>segment);
     } else if (segment instanceof RazorIfStatement) {
@@ -106,11 +111,13 @@ class Transpiler {
       if (v instanceof LiteralSegment) {
         var l = <LiteralSegment>v;
         this.code.literal(l.value);
-      } else if (v instanceof RazorExpression) {
-        var r = <RazorExpression>v;
-        this.transpileRazorExpression(r);
+      } else if (v instanceof RazorInlineExpression) {
+        var r = <RazorInlineExpression>v;
+        this.code.openScope();
+        this.transpileRazorExpression(r.expression);
+        this.code.closeScope();
       } else {
-        throw new Error('Expected LiteralSegment or RazorExpressionSegment');
+        throw new Error('Expected LiteralSegment or RazorInlineExpression');
       }
     });
 
@@ -119,7 +126,7 @@ class Transpiler {
 
   private transpileRazorExpression(segment: RazorExpression, isPartial?: boolean): void {
     if (isPartial !== true) {
-      this.code.openScope();
+      //this.code.openScope();
     }
 
     if (segment instanceof RazorVariableAccess) {
@@ -143,7 +150,7 @@ class Transpiler {
     }
 
     if (isPartial !== true) {
-      this.code.closeScope();
+      //this.code.closeScope();
     }
   }
 
@@ -255,9 +262,18 @@ class Transpiler {
     this.code.startCode();
     segment.statements.forEach(s => {
       this.transpileSegment(s);
-      if (s instanceof RazorVariableDeclaration) {
+      if (s instanceof RazorExpression || s instanceof RazorVariableDeclaration) {
         this.code.directCode(';');
       }
+      /*if (s instanceof RazorExpression || s instanceof RazorStatement) {
+        this.transpileRazorExpression(s, true);
+        this.code.directCode(';');
+      } else {
+        this.transpileSegment(s);
+      }*/
+      /*if (s instanceof RazorVariableDeclaration) {
+        this.code.directCode(';');
+      }*/
     });
   }
 

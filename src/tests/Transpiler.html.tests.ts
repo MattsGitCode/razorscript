@@ -5,6 +5,7 @@ import LiteralSegment = require('../segments/Literal');
 import RazorBlockSegment = require('../segments/RazorBlock');
 import RazorStatementSegment = require('../segments/RazorStatement');
 import RazorLiteral = require('../segments/RazorLiteral');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IView = require('../IView');
 
 import Transpiler = require('../transpiler/Transpiler');
@@ -52,7 +53,9 @@ test('empty attribute removed from tag', function() {
   var view = transpile(
         new HtmlSegment('div', '', '', true, [
           new HtmlAttributeSegment('class', '\'', ' ', [
-            new RazorLiteral('null')
+            new RazorInlineExpression(
+              new RazorLiteral('null')
+            )
           ])
         ])
       ),
@@ -97,7 +100,9 @@ test('whitespace prefixing attribute removed if attribute is removed', function(
   var view = transpile(//'<div     class="@(null)" />'),
         new HtmlSegment('div', '', ' ', true, [
           new HtmlAttributeSegment('class', '"', '      ', [
-            new RazorLiteral('null')
+            new RazorInlineExpression(
+              new RazorLiteral('null')
+            )
           ])
         ])
       ),

@@ -1,7 +1,7 @@
 <h2>@model.title</h2>
 <ul>
   @foreach(var item in model.items) {
-    listItem(item);
+    @listItem(item);
   }
 </ul>
 

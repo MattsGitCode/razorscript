@@ -20,6 +20,7 @@ import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import RazorHelper = require('../segments/RazorHelper');
 import RazorComment = require('../segments/RazorComment');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IParser = require('./IParser');
 
 var keywords: Array<string> = ['if', 'do', 'while', 'for', 'foreach'];
@@ -148,9 +149,9 @@ class Parser {
     } else if (keywords.indexOf(this.iterator.peek.text) !== -1) {
       segment = this.parseRazorStatement();
     } else if (this.iterator.peek.isAlpha) {
-      segment = this.parseRazorSimpleExpression();
+      segment = new RazorInlineExpression(this.parseRazorSimpleExpression());
     } else if (this.iterator.peek.text === '(') {
-      segment = this.parseRazorExpression();
+      segment = new RazorInlineExpression(this.parseRazorExpression());
     } else if (this.iterator.peek.text === '{') {
       segment = this.parseRazorBlock();
     } else {
@@ -295,6 +296,12 @@ class Parser {
   private parseRazorStatement(): Segment {
     if (this.iterator.nowhitespace.peek.text === '<') {
       return this.parseHtmlSegment();
+    } else if (this.iterator.nowhitespace.peek.text === '@') {
+      var segment = this.parseRazorSegment();
+      if (this.iterator.nowhitespace.peek.text === ';') {
+        this.iterator.nowhitespace.consume();
+      }
+      return segment;
     }
 
     return this.parseRazorCodeStatement();

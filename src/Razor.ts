@@ -5,6 +5,7 @@ import Parser = require('./parser/Parser');
 import Transpiler = require('./transpiler/Transpiler');
 import IView = require('./IView');
 import fs = require('fs');
+import path = require('path');
 var extend = require('extend');
 
 export function transpile(razorMarkup: string): new (model?: any) => IView {
@@ -18,7 +19,8 @@ export function transpile(razorMarkup: string): new (model?: any) => IView {
 
 export function transpileFile(razorPath: string): new (model?: any) => IView {
   var source = fs.readFileSync(razorPath, {encoding: 'utf8'});
-  return transpile(source);
+  var viewClass = transpile(source);
+  return viewClass;
 }
 
 export interface IViewEngineOptions {
@@ -48,12 +50,11 @@ export class ViewEngine {
   public renderView(viewName: string, model: any, bodyOfLayout?: string): string {
     if (this.views[viewName] === undefined) {
       var viewSource = this.options.viewContentsProvider(viewName);
+      if (!viewSource) {
+        throw new Error('could not find view ' + viewName);
+      }
       var viewClass = transpile(viewSource);
       this.views[viewName] = viewClass;
-    }
-
-    if (!this.views[viewName]) {
-      throw new Error('could not find view ' + viewName);
     }
 
     var renderedView: string;
@@ -61,15 +62,16 @@ export class ViewEngine {
     var view = new this.views[viewName](model);
 
     if (bodyOfLayout) {
-      (<any>view).renderBody = function(parentHtml) {
-        parentHtml.push(bodyOfLayout);
+      (<any>view).renderBody = function() {
+        return bodyOfLayout;
       };
     }
 
     renderedView = view.execute();
 
     if (view.layout) {
-      renderedView = this.renderView(view.layout, model, renderedView);
+      var layoutPath = path.join(path.dirname(viewName), view.layout);
+      renderedView = this.renderView(layoutPath, model, renderedView);
     }
 
     return renderedView;

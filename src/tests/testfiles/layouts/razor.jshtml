@@ -1,10 +1,10 @@
 @{
-  layout = 'layout.jshtml';
+  layout = 'layout_inner.jshtml';
 }
 <h2>@model.title</h2>
 <ul>
   @foreach(var item in model.items) {
-    listItem(item);
+    @listItem(item);
   }
 </ul>
 

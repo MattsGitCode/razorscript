@@ -14,6 +14,10 @@ class TokenIterator implements ITokenIterator {
   private _eof: boolean = false;
 
   constructor(razor: string) {
+    if (!razor) {
+      throw new Error('razor markup must be specified');
+    }
+
     this._original = razor;
     this._length = razor.length;
     this._queue = [];

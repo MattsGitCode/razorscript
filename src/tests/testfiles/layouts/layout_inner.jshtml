@@ -1,0 +1,6 @@
+@{
+  layout = 'layout_outer.jshtml';
+}
+<div class="container">
+  @renderBody()
+</div>

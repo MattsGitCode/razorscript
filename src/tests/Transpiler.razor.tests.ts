@@ -15,6 +15,7 @@ import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration'
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import RazorComment = require('../segments/RazorComment');
 import IView = require('../IView');
 
@@ -37,7 +38,9 @@ var transpile = function(model?: any, ...segments: Array<Segment>): IView {
 
 test('razor expression with literal string', function() {
   var view = transpile(// @("hello")
-        new RazorLiteral('"hello"')
+        new RazorInlineExpression(
+          new RazorLiteral('"hello"')
+        )
       ),
       result = view.execute();
 
@@ -46,7 +49,9 @@ test('razor expression with literal string', function() {
 
 test('razor expression with literal number', function() {
   var view = transpile(// @(42)
-        new RazorLiteral('42')
+        new RazorInlineExpression(
+          new RazorLiteral('42')
+        )
       ),
       result = view.execute();
 
@@ -57,8 +62,10 @@ test('razor expression using view model', function() {
   var model = { bilbo: 'baggins' },
       view = transpile(// @model.bilbo
         model,
-        new RazorVariableAccess('bilbo',
-          new RazorVariableAccess('model', null))
+        new RazorInlineExpression(
+          new RazorVariableAccess('bilbo',
+            new RazorVariableAccess('model', null))
+        )
       );
 
   var result = view.execute();
@@ -77,7 +84,7 @@ test('razor block with empty html element', function() {
   equal(result, '<div />');
 });
 
-test('razor block with variable assignment', function() {
+test('razor block with variable declaration', function() {
   var view = transpile(// @{var x = 42;}
         new RazorBlock([
           new RazorVariableDeclaration(
@@ -89,6 +96,21 @@ test('razor block with variable assignment', function() {
       code = view.execute.toString();
 
   ok(/;var x = 42;/.test(code), 'expected execute body to contain var x = 42;');
+});
+
+test('razor block with variable assignment', function() {
+  var view = transpile(// @{x = 42;}
+        new RazorBlock([
+          new RazorBinaryExpression(
+            new RazorVariableAccess('x'),
+            '=',
+            new RazorLiteral('42')
+          )
+        ])
+      ),
+      code = view.execute.toString();
+
+  ok(/;this\.x=42;/.test(code), 'expected execute body to contain this.x=42;');
 });
 
 test('razor if(true) statement expression with empty html element', function() {
@@ -163,7 +185,9 @@ test('razor for loop statement expression with html element and loop variable', 
           ),
           new RazorBlock([
             new Html('div', '', '', [], [
-              new RazorVariableAccess('i')
+              new RazorInlineExpression(
+                new RazorVariableAccess('i')
+              )
             ])
           ])
         )
@@ -196,11 +220,13 @@ test('razor for loop statement expression with loop variable and view model', fu
           ),
           new RazorBlock([
             new Html('div', '', '', [], [
-              new RazorArrayAccess(
-                new RazorVariableAccess('d',
-                  new RazorVariableAccess('model')
-                ),
-                new RazorVariableAccess('i')
+              new RazorInlineExpression(
+                new RazorArrayAccess(
+                  new RazorVariableAccess('d',
+                    new RazorVariableAccess('model')
+                  ),
+                  new RazorVariableAccess('i')
+                )
               )
             ])
           ])
@@ -219,7 +245,7 @@ test('variable access without declaration is transpiled to access of a this prop
       ),
       executeBody = view.execute.toString();
 
-  ok(/push\(this\.test\)/.test(executeBody), 'expected execute body to contain this.test');
+  ok(/;this\.test;/.test(executeBody), 'expected execute body to contain this.test');
 });
 
 test('variable access with previous declaration is transpiled as-is', function(){
@@ -231,7 +257,7 @@ test('variable access with previous declaration is transpiled as-is', function()
       ),
       executeBody = view.execute.toString();
 
-  ok(/push\(test\)/.test(executeBody), 'expected execute body to contain push(test)');
+  ok(/;test;/.test(executeBody), 'expected execute body to contain test');
 });
 
 test('empty foreach loop with collection variable', function() {

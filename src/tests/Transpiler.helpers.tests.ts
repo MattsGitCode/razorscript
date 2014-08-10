@@ -2,6 +2,7 @@ import Segment = require('../segments/Segment');
 import Html = require('../segments/Html');
 import Literal = require('../segments/Literal');
 import RazorBlock = require('../segments/RazorBlock');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import RazorExpression = require('../segments/RazorExpression');
 import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import RazorMethodCall = require('../segments/RazorMethodCall');
@@ -28,18 +29,22 @@ test('call single parameter helper with simple html element', function() {
           new RazorBlock([
             new Html('div', '', '', [], [
               new Literal('cup of '),
-              new RazorVariableAccess('drink')
+              new RazorInlineExpression(
+                new RazorVariableAccess('drink')
+              )
             ])
           ])
         ),
-        new RazorMethodCall(//'this.cup(\'tea\')')
-          new RazorVariableAccess('cup'),
-          [
-            new RazorLiteral('"tea"')
-          ]
+        new RazorInlineExpression(
+          new RazorMethodCall(//'this.cup(\'tea\')')
+            new RazorVariableAccess('cup'),
+            [
+              new RazorLiteral('"tea"')
+            ]
+          )
         )
       );
-      
+
   var result = view.execute();
 
   equal(result, '<div>cup of tea</div>');

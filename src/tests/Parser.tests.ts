@@ -8,6 +8,7 @@ import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorArrayAccess = require('../segments/RazorArrayAccess');
 import RazorLiteral = require('../segments/RazorLiteral');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 
 QUnit.module('Parser');
 
@@ -89,9 +90,9 @@ test('single html element with simple razor in attribute', function () {
 
     var attribute: HtmlAttributeSegment = (<HtmlSegment>output[0]).attributes[0];
     equal(attribute.values.length, 1);
-    ok(attribute.values[0] instanceof RazorVariableAccess, 'expected RazorVariableAccess');
+    ok(attribute.values[0] instanceof RazorInlineExpression, 'expected RazorInlineExpression');
 
-    var prop = <RazorVariableAccess>attribute.values[0];
+    var prop = <RazorVariableAccess>(<RazorInlineExpression>attribute.values[0]).expression;
     equal(prop.name, 'something');
     ok(prop.object instanceof RazorVariableAccess);
     var obj = <RazorVariableAccess>prop.object;
@@ -110,9 +111,9 @@ test('single html element with razor array access in attribute', function () {
     var attribute: HtmlAttributeSegment = (<HtmlSegment>output[0]).attributes[0];
 
     equal(attribute.values.length, 1);
-    ok(attribute.values[0] instanceof RazorVariableAccess, 'expected RazorVariableAccess');
+    ok(attribute.values[0] instanceof RazorInlineExpression, 'expected RazorInlineExpression');
 
-    var bravo = <RazorVariableAccess>attribute.values[0];
+    var bravo = <RazorVariableAccess>(<RazorInlineExpression>attribute.values[0]).expression;
     equal(bravo.name, 'bravo');
     ok(bravo.object instanceof RazorArrayAccess, 'expected RazorArrayAccess');
 
@@ -144,7 +145,7 @@ test('single html element with razor and literals in attribute', function () {
     var a = <HtmlAttributeSegment>h.attributes[0];
     var l1 = <LiteralSegment>a.values[0];
     var l2 = <LiteralSegment>a.values[2];
-    var r1 = <RazorVariableAccess>a.values[1];
+    var r1 = <RazorVariableAccess>(<RazorInlineExpression>a.values[1]).expression;
     var r2 = <RazorVariableAccess>r1.object;
 
     equal(l1.value, 'alpha ');
