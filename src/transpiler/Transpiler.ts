@@ -14,7 +14,7 @@ import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorHelper = require('../segments/RazorHelper');
-import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
@@ -76,8 +76,8 @@ class Transpiler {
       this.transpileRazorForLoop(<RazorForLoop>segment);
     } else if (segment instanceof RazorForEachLoop) {
       this.transpileRazorForEachLoop(<RazorForEachLoop>segment);
-    } else if (segment instanceof RazorVariableAssignment) {
-      this.transpileRazorVariableAssignment(<RazorVariableAssignment>segment);
+    } else if (segment instanceof RazorVariableDeclaration) {
+      this.transpileRazorVariableDeclaration(<RazorVariableDeclaration>segment);
     } else {
       throw new Error('transpileSegment(' + segment.getType() + '): not implemented');
     }
@@ -130,8 +130,8 @@ class Transpiler {
       this.transpileRazorMethodCall(<RazorMethodCall>segment);
     } else if (segment instanceof RazorArrayAccess) {
       this.transpileRazorArrayAccess(<RazorArrayAccess>segment);
-    } else if (segment instanceof RazorVariableAssignment) {
-      this.transpileRazorVariableAssignment(<RazorVariableAssignment>segment);
+    } else if (segment instanceof RazorVariableDeclaration) {
+      this.transpileRazorVariableDeclaration(<RazorVariableDeclaration>segment);
     } else if (segment instanceof RazorUnaryExpression) {
       this.transpileRazorUnaryExpression(<RazorUnaryExpression>segment);
     } else if (segment instanceof RazorBinaryExpression) {
@@ -151,10 +151,13 @@ class Transpiler {
     this.code.expression(segment.expression);
   }
 
-  private transpileRazorVariableAssignment(segment: RazorVariableAssignment): void {
-    this.code.declareVariable(segment.variable.name);
-    this.code.directCode('var ' + segment.variable.name + ' = ');
-    this.transpileRazorExpression(segment.expression, true);
+  private transpileRazorVariableDeclaration(segment: RazorVariableDeclaration): void {
+    this.code.declareVariable(segment.name);
+    this.code.directCode('var ' + segment.name);
+    if (segment.initialiser) {
+      this.code.directCode(' = ');
+      this.transpileRazorExpression(segment.initialiser, true);
+    }
   }
 
   private transpileRazorVariableAccess(segment: RazorVariableAccess): void {
@@ -252,7 +255,7 @@ class Transpiler {
     this.code.startCode();
     segment.statements.forEach(s => {
       this.transpileSegment(s);
-      if (s instanceof RazorVariableAssignment) {
+      if (s instanceof RazorVariableDeclaration) {
         this.code.directCode(';');
       }
     });

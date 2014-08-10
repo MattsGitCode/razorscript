@@ -14,7 +14,7 @@ import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
-import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
+import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
@@ -255,7 +255,7 @@ class Parser {
 
     var expression = this.parseRazorSimpleExpression();
 
-    var ops = ['++','<','>','==','?'];
+    var ops = ['++','<','>','==','?','='];
     while(ops.indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
       var op = this.iterator.nowhitespace.consume().text;
       if (op === '?') {
@@ -305,7 +305,7 @@ class Parser {
       return this.parseIfStatement();
     }
     if (this.iterator.nowhitespace.peek.text === 'var') {
-      var expression = this.parseVariableAssignment();
+      var expression = this.parseVariableDeclaration();
       this.iterator.consume(';');
       return expression;
     }
@@ -337,25 +337,24 @@ class Parser {
     return new RazorIfStatement(test, body);
   }
 
-  private parseVariableAssignment(): RazorStatement {
+  private parseVariableDeclaration(): RazorStatement {
     this.iterator.nowhitespace.consume('var');
+    var variableName = this.iterator.nowhitespace.consume(TokenType.alphanumeric).text;
+    var expression: RazorExpression = null;
 
-    var leftSide = this.parseRazorSimpleExpression();
-    if (leftSide instanceof RazorVariableAccess !== true) {
-      throw new Error('expected variable on left side of assignment but found ' + leftSide.getType());
+    if (this.iterator.nowhitespace.peek.text === '=') {
+      this.iterator.nowhitespace.consume();
+      expression = this.parseRazorSimpleExpression();
     }
 
-    this.iterator.nowhitespace.consume('=');
-    var expression = this.parseRazorSimpleExpression();
-
-    return new RazorVariableAssignment(<RazorVariableAccess>leftSide, expression);
+    return new RazorVariableDeclaration(variableName, expression);
   }
 
   private parseForLoop(): RazorStatement {
     this.iterator.nowhitespace.consume('for');
     this.iterator.nowhitespace.consume('(');
 
-    var initialisation = this.parseVariableAssignment();
+    var initialisation = this.parseVariableDeclaration();
     this.iterator.nowhitespace.consume(';');
     var condition = this.parseRazorExpression();
     this.iterator.nowhitespace.consume(';');
