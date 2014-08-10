@@ -6,9 +6,21 @@ that can be instantiated and executed with a viewmodel.
 
 ##Usage
 
+#####Layout.jshtml
+```js
+<html>
+<body>
+  @renderBody()
+</body>
+</html>
+```
+
 #####MyFirstView.jshtml
 
 ```js
+@{
+  layout = 'Layout.jshtml';
+}
 <h2>@model.title</h2>
 <ul>
   @foreach(var name in model.items) {
@@ -26,7 +38,7 @@ that can be instantiated and executed with a viewmodel.
 
 ```js
 var razor = require('razorscript'),
-    view = razor.transpileFile('MyFirstView.jshtml'),
+    viewEngine = new razor.ViewEngine(),
     model = {
       title: 'Hobbits',
       current: 'Frodo',
@@ -38,14 +50,16 @@ var razor = require('razorscript'),
         'Peregrin',
         'Samwise',
       ]
-    }
-    instance = new view(model),
-    output = instance.execute();
+    },
+    output = viewEngine.renderView('MyFirstView.jshtml', model);
+
 ```
 
 #####The output
 
 ```html
+<html>
+<body>
 <h2>Hobbits</h2>
 <ul>
   <li>Bilbo</li>
@@ -55,4 +69,6 @@ var razor = require('razorscript'),
   <li>Peregrin</li>
   <li>Samwise</li>
 </ul>
+</body>
+</html>
 ```
