@@ -10,6 +10,7 @@ import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
+import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
@@ -233,4 +234,17 @@ test('variable access with previous declaration is transpiled as-is', function()
       executeBody = view.execute.toString();
 
   ok(/push\(test\)/.test(executeBody), 'expected execute body to contain push(test)');
+});
+
+test('empty foreach loop with collection variable', function() {
+  var view = transpile(
+        new RazorForEachLoop(
+          'abc',
+          new RazorVariableAccess('def'),
+          new RazorBlock([])
+        )
+      ),
+      executeBody = view.execute.toString();
+
+  ok(/this\.def\.forEach\(function\(abc\){},this\);/.test(executeBody), 'expected execute body to contain this.def.forEach(function(abc){},this);');
 });

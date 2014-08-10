@@ -14,6 +14,7 @@ import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorForLoop = require('../segments/RazorForLoop');
+import RazorForEachLoop = require('../segments/RazorForEachLoop');
 
 QUnit.module('Parser');
 
@@ -134,4 +135,23 @@ test('empty for loop razor expression', function(){
   equal(iteration.operator, '++');
   ok(iteration.operand instanceof RazorVariableAccess, 'expected loop iteration operand to be RazorVariableAccess');
   equal((<RazorVariableAccess>iteration.operand).name, 'i');
+});
+
+test('empty foreach razor expression over variable', function() {
+  var input = '@foreach(var abc in def){}',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  ok(output[0] instanceof RazorForEachLoop, 'expected RazorForEachLoop');
+  var forEachLoop = <RazorForEachLoop>output[0];
+
+  equal(forEachLoop.loopVariable, 'abc');
+
+  ok(forEachLoop.collection instanceof RazorVariableAccess, 'expected collection to be RazorVariableAccess');
+  var collection = <RazorVariableAccess>forEachLoop.collection;
+  equal(collection.name, 'def');
+  equal(collection.object, null);
 });

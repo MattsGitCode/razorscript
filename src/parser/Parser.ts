@@ -13,6 +13,7 @@ import RazorLiteral = require('../segments/RazorLiteral');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
+import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
@@ -296,6 +297,9 @@ class Parser {
     if (this.iterator.nowhitespace.peek.text === 'for') {
       return this.parseForLoop();
     }
+    if (this.iterator.nowhitespace.peek.text === 'foreach') {
+      return this.parseForEachLoop();
+    }
 
     var expression = this.parseRazorExpression();
     this.iterator.nowhitespace.consume(';');
@@ -346,6 +350,29 @@ class Parser {
     var body = this.parseRazorBlock();
 
     return new RazorForLoop(initialisation, condition, iteration, body);
+  }
+
+  private parseForEachLoop(): RazorStatement {
+    var loopVariable: string,
+        collection: RazorExpression,
+        body: RazorBlock;
+
+    this.iterator.nowhitespace.consume('foreach');
+    this.iterator.nowhitespace.consume('(');
+    this.iterator.nowhitespace.consume('var');
+
+    loopVariable = this.iterator.nowhitespace.consume(TokenType.alphanumeric).text;
+    this.iterator.nowhitespace.consume('in');
+    collection = this.parseRazorExpression();
+
+    if (!(collection instanceof RazorVariableAccess)) {
+      throw new Error('expected variable access for the collection of a foreach loop');
+    }
+
+    this.iterator.nowhitespace.consume(')');
+    body = this.parseRazorBlock();
+
+    return new RazorForEachLoop(loopVariable, collection, body);
   }
 
   private parseRazorHelper(): RazorHelper {

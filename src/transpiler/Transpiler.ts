@@ -11,6 +11,7 @@ import RazorArrayAccess = require('../segments/RazorArrayAccess');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
+import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorHelper = require('../segments/RazorHelper');
 import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
@@ -70,6 +71,8 @@ class Transpiler {
       this.transpileRazorHelper(<RazorHelper>segment);
     } else if (segment instanceof RazorForLoop) {
       this.transpileRazorForLoop(<RazorForLoop>segment);
+    } else if (segment instanceof RazorForEachLoop) {
+      this.transpileRazorForEachLoop(<RazorForEachLoop>segment);
     } else if (segment instanceof RazorVariableAssignment) {
       this.transpileRazorVariableAssignment(<RazorVariableAssignment>segment);
     } else {
@@ -212,6 +215,15 @@ class Transpiler {
     this.transpileRazorBlock(segment.body);
 
     this.code.directCode('}');
+  }
+
+  private transpileRazorForEachLoop(segment: RazorForEachLoop): void {
+    this.code.startCode();
+    this.transpileRazorExpression(segment.collection, true);
+    this.code.directCode('.forEach(function(' + segment.loopVariable + '){');
+    this.code.declareVariable(segment.loopVariable);
+    this.transpileRazorBlock(segment.body);
+    this.code.directCode('},this);');
   }
 
   private transpileRazorUnaryExpression(segment: RazorUnaryExpression): void {
