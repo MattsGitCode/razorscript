@@ -15,6 +15,7 @@ import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
+import RazorComment = require('../segments/RazorComment');
 
 QUnit.module('Parser');
 
@@ -154,4 +155,19 @@ test('empty foreach razor expression over variable', function() {
   var collection = <RazorVariableAccess>forEachLoop.collection;
   equal(collection.name, 'def');
   equal(collection.object, null);
+});
+
+test('razor comments are parsed', function() {
+  var commentText = 'this <b>is</b> @foreach(comment in this) {} a return 0; comment',
+      input = '@*' + commentText + '*@',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  equal(output.length, 1);
+  ok(output[0] instanceof RazorComment, 'expected a RazorComment');
+  var comment = <RazorComment>output[0];
+  equal(comment.text, commentText);
 });

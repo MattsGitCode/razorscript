@@ -19,6 +19,7 @@ import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import RazorHelper = require('../segments/RazorHelper');
+import RazorComment = require('../segments/RazorComment');
 import IParser = require('./IParser');
 
 var keywords: Array<string> = ['if', 'do', 'while', 'for', 'foreach'];
@@ -140,6 +141,8 @@ class Parser {
     } if (this.iterator.peek.isRazor) {
       segment = new LiteralSegment('@');
       this.iterator.consume();
+    } else if (this.iterator.peek.text === '*') {
+      segment = this.parseRazorComment();
     } else if (this.iterator.peek.text === 'helper') {
       segment = this.parseRazorHelper();
     } else if (keywords.indexOf(this.iterator.peek.text) !== -1) {
@@ -205,6 +208,18 @@ class Parser {
     }
 
     return expression;
+  }
+
+  private parseRazorComment(): RazorComment {
+    var commentParts: Array<string> = [];
+    this.iterator.consume('*');
+    while (!(this.iterator.peek.text === '*' && this.iterator.peekNext.text === '@')) {
+      commentParts.push(this.iterator.consume().text);
+    }
+    this.iterator.consume('*');
+    this.iterator.consume('@');
+
+    return new RazorComment(commentParts.join(''));
   }
 
   private parseRazorStringLiteral(): RazorLiteral {

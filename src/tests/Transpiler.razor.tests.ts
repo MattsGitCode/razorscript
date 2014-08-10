@@ -15,6 +15,7 @@ import RazorVariableAssignment = require('../segments/RazorVariableAssignment');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
+import RazorComment = require('../segments/RazorComment');
 import IView = require('../IView');
 
 import Transpiler = require('../transpiler/Transpiler');
@@ -247,4 +248,13 @@ test('empty foreach loop with collection variable', function() {
       executeBody = view.execute.toString();
 
   ok(/this\.def\.forEach\(function\(abc\){},this\);/.test(executeBody), 'expected execute body to contain this.def.forEach(function(abc){},this);');
+});
+
+test('razor comments are ignored', function() {
+  var view = transpile(
+        new RazorComment('alpha')
+      ),
+      executeBody = view.execute.toString();
+
+  ok(!/alpha/.test(executeBody), 'did not expect execute body to contain the comment text');
 });

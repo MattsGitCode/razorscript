@@ -1,4 +1,5 @@
 import Segment = require('../segments/Segment');
+import RazorComment = require('../segments/RazorComment');
 import HtmlSegment = require('../segments/Html');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
@@ -57,7 +58,9 @@ class Transpiler {
   }
 
   private transpileSegment(segment: Segment): void {
-    if (segment instanceof HtmlSegment) {
+    if (segment instanceof RazorComment) {
+      // Don't transpile razor comments
+    } else if (segment instanceof HtmlSegment) {
       this.transpileHtmlSegment(<HtmlSegment>segment);
     } else if (segment instanceof RazorExpression) {
       this.transpileRazorExpression(<RazorExpression>segment);
