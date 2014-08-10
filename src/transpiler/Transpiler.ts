@@ -124,11 +124,7 @@ class Transpiler {
     this.code.endAttribute(segment.quoteChar);
   }
 
-  private transpileRazorExpression(segment: RazorExpression, isPartial?: boolean): void {
-    if (isPartial !== true) {
-      //this.code.openScope();
-    }
-
+  private transpileRazorExpression(segment: RazorExpression): void {
     if (segment instanceof RazorVariableAccess) {
       this.transpileRazorVariableAccess(<RazorVariableAccess>segment);
     } else if (segment instanceof RazorLiteral) {
@@ -148,10 +144,6 @@ class Transpiler {
     } else {
       throw new Error('transpileRazorExpression(' + segment.getType() + '): not implemented');
     }
-
-    if (isPartial !== true) {
-      //this.code.closeScope();
-    }
   }
 
   private transpileRazorLiteral(segment: RazorLiteral): void {
@@ -163,13 +155,13 @@ class Transpiler {
     this.code.directCode('var ' + segment.name);
     if (segment.initialiser) {
       this.code.directCode(' = ');
-      this.transpileRazorExpression(segment.initialiser, true);
+      this.transpileRazorExpression(segment.initialiser);
     }
   }
 
   private transpileRazorVariableAccess(segment: RazorVariableAccess): void {
     if (segment.object) {
-      this.transpileRazorExpression(segment.object, true);
+      this.transpileRazorExpression(segment.object);
       this.code.expression('.' + segment.name);
     } else {
       if (this.code.isVariableDeclared(segment.name)) {
@@ -183,7 +175,7 @@ class Transpiler {
   private transpileRazorMethodCall(segment: RazorMethodCall): void {
     var expression = '';
 
-    this.transpileRazorExpression(segment.accessor, true);
+    this.transpileRazorExpression(segment.accessor);
     this.code.expression('(');
     var isFirst = true;
     segment.arguments.forEach(a => {
@@ -192,22 +184,22 @@ class Transpiler {
       } else {
         this.code.expression(',');
       }
-      this.transpileRazorExpression(a, true);
+      this.transpileRazorExpression(a);
     });
     this.code.expression(')');
   }
 
   private transpileRazorArrayAccess(segment: RazorArrayAccess): void {
-    this.transpileRazorExpression(segment.accessor, true);
+    this.transpileRazorExpression(segment.accessor);
     this.code.expression('[');
-    this.transpileRazorExpression(segment.argument, true);
+    this.transpileRazorExpression(segment.argument);
     this.code.expression(']');
   }
 
   private transpileRazorIfStatement(segment: RazorIfStatement): void {
     this.code.startCode();
     this.code.directCode('if (');
-    this.transpileRazorExpression(segment.test, true);
+    this.transpileRazorExpression(segment.test);
     this.code.directCode('){');
 
     this.transpileRazorBlock(segment.body);
@@ -218,11 +210,11 @@ class Transpiler {
   private transpileRazorForLoop(segment: RazorForLoop): void {
     this.code.startCode();
     this.code.directCode('for(');
-    this.transpileRazorExpression(segment.initialisation, true);
+    this.transpileRazorExpression(segment.initialisation);
     this.code.directCode(';');
-    this.transpileRazorExpression(segment.condition, true);
+    this.transpileRazorExpression(segment.condition);
     this.code.directCode(';');
-    this.transpileRazorExpression(segment.iteration, true);
+    this.transpileRazorExpression(segment.iteration);
     this.code.directCode('){');
 
     this.transpileRazorBlock(segment.body);
@@ -232,7 +224,7 @@ class Transpiler {
 
   private transpileRazorForEachLoop(segment: RazorForEachLoop): void {
     this.code.startCode();
-    this.transpileRazorExpression(segment.collection, true);
+    this.transpileRazorExpression(segment.collection);
     this.code.directCode('.forEach(function(' + segment.loopVariable + '){');
     this.code.declareVariable(segment.loopVariable);
     this.transpileRazorBlock(segment.body);
@@ -241,21 +233,21 @@ class Transpiler {
 
   private transpileRazorUnaryExpression(segment: RazorUnaryExpression): void {
     this.code.directCode(segment.operator);
-    this.transpileRazorExpression(segment.operand, true);
+    this.transpileRazorExpression(segment.operand);
   }
 
   private transpileRazorBinaryExpression(segment: RazorBinaryExpression): void {
-    this.transpileRazorExpression(segment.leftOperand, true);
+    this.transpileRazorExpression(segment.leftOperand);
     this.code.directCode(segment.operator);
-    this.transpileRazorExpression(segment.rightOperand, true);
+    this.transpileRazorExpression(segment.rightOperand);
   }
 
   private transpileRazorTernaryExpression(segment: RazorTernaryExpression): void {
-    this.transpileRazorExpression(segment.condition, true);
+    this.transpileRazorExpression(segment.condition);
     this.code.directCode('?');
-    this.transpileRazorExpression(segment.trueExpression, true);
+    this.transpileRazorExpression(segment.trueExpression);
     this.code.directCode(':');
-    this.transpileRazorExpression(segment.falseExpression, true);
+    this.transpileRazorExpression(segment.falseExpression);
   }
 
   private transpileRazorBlock(segment: RazorBlockSegment): void {
@@ -265,15 +257,6 @@ class Transpiler {
       if (s instanceof RazorExpression || s instanceof RazorVariableDeclaration) {
         this.code.directCode(';');
       }
-      /*if (s instanceof RazorExpression || s instanceof RazorStatement) {
-        this.transpileRazorExpression(s, true);
-        this.code.directCode(';');
-      } else {
-        this.transpileSegment(s);
-      }*/
-      /*if (s instanceof RazorVariableDeclaration) {
-        this.code.directCode(';');
-      }*/
     });
   }
 
