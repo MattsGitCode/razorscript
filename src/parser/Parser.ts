@@ -20,6 +20,7 @@ import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import RazorHelper = require('../segments/RazorHelper');
 import RazorComment = require('../segments/RazorComment');
+import RazorSection = require('../segments/RazorSection');
 import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IParser = require('./IParser');
 
@@ -146,6 +147,8 @@ class Parser {
       segment = this.parseRazorComment();
     } else if (this.iterator.peek.text === 'helper') {
       segment = this.parseRazorHelper();
+    } else if (this.iterator.peek.text === 'section') {
+      segment = this.parseRazorSection();
     } else if (keywords.indexOf(this.iterator.peek.text) !== -1) {
       segment = this.parseRazorStatement();
     } else if (this.iterator.peek.isAlpha) {
@@ -417,6 +420,15 @@ class Parser {
     var block = this.parseRazorBlock();
 
     return new RazorHelper(name, parameters, block);
+  }
+
+  private parseRazorSection(): RazorSection {
+    this.iterator.consume('section');
+
+    var name = this.iterator.nowhitespace.consume(TokenType.alphanumeric).text;
+    var block = this.parseRazorBlock();
+
+    return new RazorSection(name, block);
   }
 }
 

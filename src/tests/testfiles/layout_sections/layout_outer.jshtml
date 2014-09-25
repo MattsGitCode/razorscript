@@ -1,0 +1,8 @@
+<html>
+<body>
+  <header>
+    @renderSection('header')
+  </header>
+  @renderBody()
+</body>
+</html>

@@ -14,6 +14,7 @@ import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorHelper = require('../segments/RazorHelper');
+import RazorSection = require('../segments/RazorSection');
 import RazorVariableDeclaration = require('../segments/RazorVariableDeclaration');
 import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorBinaryExpression = require('../segments/RazorBinaryExpression');
@@ -40,6 +41,13 @@ class Transpiler {
     }
 
     this.transpiledClass = <new (model?: any) => IView>new Function('model', 'this.model = model;');
+    this.transpiledClass.prototype._sections = {};
+    this.transpiledClass.prototype.renderSection = function(name) {
+      if (this.model._sections && this.model._sections[name]) {
+        var sectionHtml = this.model._sections[name].call(this.model);
+        return sectionHtml;
+      }
+    };
 
     var parsedSegments = this.parser.parse();
 
@@ -77,6 +85,8 @@ class Transpiler {
       this.code.literal((<LiteralSegment>segment).value);
     } else if (segment instanceof RazorHelper) {
       this.transpileRazorHelper(<RazorHelper>segment);
+    } else if (segment instanceof RazorSection) {
+      this.transpileRazorSection(<RazorSection>segment);
     } else if (segment instanceof RazorForLoop) {
       this.transpileRazorForLoop(<RazorForLoop>segment);
     } else if (segment instanceof RazorForEachLoop) {
@@ -278,6 +288,23 @@ class Transpiler {
     }
 
     this.transpiledClass.prototype[segment.name] = helperFunction;
+
+    this.code = originalCodeBuilder;
+  }
+
+  private transpileRazorSection(segment: RazorSection): void {
+    var originalCodeBuilder = this.code;
+    this.code = new CodeBuilder();
+
+    this.transpileRazorBlock(segment.block);
+    var sectionFunction: Function;
+    try {
+      sectionFunction = Function.call(null, this.code.toString());
+    } catch (e) {
+      throw new Error('Syntax error in transpiled code for section ' + segment.name + ': ' + this.code.toString());
+    }
+
+    this.transpiledClass.prototype._sections[segment.name] = sectionFunction;
 
     this.code = originalCodeBuilder;
   }

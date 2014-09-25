@@ -1,0 +1,13 @@
+@{
+  layout = 'layout_outer.jshtml';
+}
+
+@section header {
+  <div>
+    @renderSection('header')
+  </div>
+}
+
+<div class="container">
+  @renderBody()
+</div>

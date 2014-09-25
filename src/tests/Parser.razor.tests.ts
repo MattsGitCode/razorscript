@@ -16,6 +16,7 @@ import RazorUnaryExpression = require('../segments/RazorUnaryExpression');
 import RazorForLoop = require('../segments/RazorForLoop');
 import RazorForEachLoop = require('../segments/RazorForEachLoop');
 import RazorComment = require('../segments/RazorComment');
+import RazorSection = require('../segments/RazorSection');
 
 QUnit.module('Parser');
 
@@ -204,4 +205,18 @@ test('razor comments are parsed', function() {
   ok(output[0] instanceof RazorComment, 'expected a RazorComment');
   var comment = <RazorComment>output[0];
   equal(comment.text, commentText);
+});
+
+test('named razor section with content', function() {
+  var input = '@section abc { <hr /> }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  ok(output[0] instanceof RazorSection);
+  var helper = <RazorSection>output[0];
+  equal(helper.name, 'abc');
+  equal(helper.block.statements.length, 1);
 });

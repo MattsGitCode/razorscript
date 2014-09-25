@@ -71,7 +71,7 @@ export class ViewEngine {
 
     if (view.layout) {
       var layoutPath = path.join(path.dirname(viewName), view.layout);
-      renderedView = this.renderView(layoutPath, model, renderedView);
+      renderedView = this.renderView(layoutPath, view, renderedView);
     }
 
     return renderedView;

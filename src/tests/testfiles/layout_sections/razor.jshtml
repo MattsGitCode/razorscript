@@ -1,0 +1,17 @@
+@{
+  layout = 'layout_inner.jshtml';
+}
+
+@section header {
+  <h2>@model.title</h2>
+}
+
+<ul>
+  @foreach(var item in model.items) {
+    @listItem(item);
+  }
+</ul>
+
+@helper listItem(name) {
+  <li class="@(name == model.current ? 'is-current' : '')">@name</li>
+}

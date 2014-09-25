@@ -4,7 +4,7 @@ enum CodeBuilderState {
 }
 
 function escape(val: string): string {
-  return val.replace('\"', '\\\"').replace('\r', '\\r').replace('\n', '\\n');
+  return val.replace(/"/g, '\\\"').replace(/\r/g, '\\r').replace(/\n/g, '\\n');
 }
 
 class CodeBuilder {
