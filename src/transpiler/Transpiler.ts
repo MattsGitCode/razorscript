@@ -44,7 +44,10 @@ class Transpiler {
 
     this.transpiledClass = <new (model?: any) => IView><any>function(model) {
       this.model = model;
-      this.helpers = {};
+      var HtmlString = this.HtmlString;
+      this.helpers = {
+        raw: function(val) { return new HtmlString(val); }
+      };
       this.html = this.helpers;
     };
 

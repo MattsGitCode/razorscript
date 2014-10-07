@@ -302,3 +302,22 @@ test('razor variable expressions are html encoded', function() {
 
   equal(result, '&lt;br /&gt;');
 });
+
+test('html.raw bypasses html encoding', function() {
+  var view = transpile(
+        new RazorBlock([
+          new RazorVariableDeclaration('foo', new RazorLiteral('"<br />"'))
+        ]),
+        new RazorInlineExpression(
+          new RazorMethodCall(
+            new RazorVariableAccess('raw', new RazorVariableAccess('html')),
+            [
+              new RazorVariableAccess('foo')
+            ]
+          )
+        )
+      ),
+      result = view.execute();
+
+  equal(result, '<br />');
+});
