@@ -40,15 +40,18 @@ var defaultViewEngineOptions = {
 export class ViewEngine {
   private options: IViewEngineOptions;
   private views: { [path: string]: new (model?: any) => IView };
+  public helpers: any;
 
   constructor(options?: IViewEngineOptions) {
     this.options = extend(null, defaultViewEngineOptions, options);
     this.views = {};
+    this.helpers = {};
   }
 
+  public renderView(viewName: string): string;
   public renderView(viewName: string, model: any): string;
   public renderView(viewName: string, model: any, bodyOfLayout: string): string;
-  public renderView(viewName: string, model: any, bodyOfLayout?: string): string {
+  public renderView(viewName: string, model?: any, bodyOfLayout?: string): string {
     if (this.views[viewName] === undefined) {
       var viewSource = this.options.viewContentsProvider(viewName);
       if (!viewSource) {
@@ -61,6 +64,12 @@ export class ViewEngine {
     var renderedView: string;
 
     var view = new this.views[viewName](model);
+
+    for (var helper in this.helpers) {
+      if (this.helpers.hasOwnProperty(helper)) {
+        view.helpers[helper] = this.helpers[helper];
+      }
+    }
 
     if (bodyOfLayout) {
       (<any>view).renderBody = function() {

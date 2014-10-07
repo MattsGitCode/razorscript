@@ -30,6 +30,7 @@ class Transpiler {
   private code: CodeBuilder;
   private transpiledClass: new (model?: any) => IView;
   private localVariables: Array<string> = [];
+  public helpers: any;
 
   constructor(parser: IParser) {
     this.parser = parser;
@@ -41,7 +42,12 @@ class Transpiler {
       return this.transpiledClass;
     }
 
-    this.transpiledClass = <new (model?: any) => IView>new Function('model', 'this.model = model;');
+    this.transpiledClass = <new (model?: any) => IView><any>function(model) {
+      this.model = model;
+      this.helpers = {};
+      this.html = this.helpers;
+    };
+
     this.transpiledClass.prototype._sections = {};
     this.transpiledClass.prototype.renderSection = function(name) {
       if (this.model._sections && this.model._sections[name]) {
