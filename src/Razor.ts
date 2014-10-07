@@ -3,6 +3,7 @@
 import TokenIterator = require('./tokens/TokenIterator');
 import Parser = require('./parser/Parser');
 import Transpiler = require('./transpiler/Transpiler');
+import HtmlString = require('./transpiler/HtmlString');
 import IView = require('./IView');
 import fs = require('fs');
 import path = require('path');
@@ -63,7 +64,7 @@ export class ViewEngine {
 
     if (bodyOfLayout) {
       (<any>view).renderBody = function() {
-        return bodyOfLayout;
+        return new HtmlString(bodyOfLayout);
       };
     }
 

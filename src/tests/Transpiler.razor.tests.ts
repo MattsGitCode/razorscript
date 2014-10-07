@@ -281,3 +281,24 @@ test('razor comments are ignored', function() {
 
   ok(!/alpha/.test(executeBody), 'did not expect execute body to contain the comment text');
 });
+
+test('razor literal expressions are html encoded', function() {
+  var view = transpile(
+        new RazorInlineExpression(new RazorLiteral('"<br />"'))
+      ),
+      result = view.execute();
+
+  equal(result, '&lt;br /&gt;');
+});
+
+test('razor variable expressions are html encoded', function() {
+  var view = transpile(
+        new RazorBlock([
+          new RazorVariableDeclaration('foo', new RazorLiteral('"<br />"'))
+        ]),
+        new RazorInlineExpression(new RazorVariableAccess('foo'))
+      ),
+      result = view.execute();
+
+  equal(result, '&lt;br /&gt;');
+});

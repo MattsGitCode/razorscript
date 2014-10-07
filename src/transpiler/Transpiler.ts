@@ -23,6 +23,7 @@ import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IParser = require('../parser/IParser');
 import IView = require('../IView');
 import CodeBuilder = require('./CodeBuilder');
+import HtmlString = require('./HtmlString');
 
 class Transpiler {
   private parser: IParser;
@@ -48,6 +49,24 @@ class Transpiler {
         return sectionHtml;
       }
     };
+    this.transpiledClass.prototype.HtmlString = HtmlString;
+
+    this.transpiledClass.prototype.escapeHtml = function(val: any): string {
+      if (val === null) {
+        return '';
+      }
+      if (val instanceof this.HtmlString) {
+        return val.html;
+      }
+      return val.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/'/g, '&apos;')
+        .replace(/"/g, '&quot;')
+        .replace(/\r/g, '\\r')
+        .replace(/\n/g, '\\n');
+    }
 
     var parsedSegments = this.parser.parse();
 
@@ -157,7 +176,7 @@ class Transpiler {
   }
 
   private transpileRazorLiteral(segment: RazorLiteral): void {
-    this.code.expression(segment.expression);
+    this.code.directCode(segment.expression);
   }
 
   private transpileRazorVariableDeclaration(segment: RazorVariableDeclaration): void {
@@ -172,12 +191,12 @@ class Transpiler {
   private transpileRazorVariableAccess(segment: RazorVariableAccess): void {
     if (segment.object) {
       this.transpileRazorExpression(segment.object);
-      this.code.expression('.' + segment.name);
+      this.code.directCode('.' + segment.name);
     } else {
       if (this.code.isVariableDeclared(segment.name)) {
-        this.code.expression(segment.name);
+        this.code.directCode(segment.name);
       } else {
-        this.code.expression('this.' + segment.name);
+        this.code.directCode('this.' + segment.name);
       }
     }
   }
@@ -186,24 +205,24 @@ class Transpiler {
     var expression = '';
 
     this.transpileRazorExpression(segment.accessor);
-    this.code.expression('(');
+    this.code.directCode('(');
     var isFirst = true;
     segment.arguments.forEach(a => {
       if (isFirst) {
         isFirst = false;
       } else {
-        this.code.expression(',');
+        this.code.directCode(',');
       }
       this.transpileRazorExpression(a);
     });
-    this.code.expression(')');
+    this.code.directCode(')');
   }
 
   private transpileRazorArrayAccess(segment: RazorArrayAccess): void {
     this.transpileRazorExpression(segment.accessor);
-    this.code.expression('[');
+    this.code.directCode('[');
     this.transpileRazorExpression(segment.argument);
-    this.code.expression(']');
+    this.code.directCode(']');
   }
 
   private transpileRazorIfStatement(segment: RazorIfStatement): void {
@@ -278,7 +297,7 @@ class Transpiler {
     this.transpileRazorBlock(segment.block);
 
     var functionCreationParams = segment.parameters.slice();
-    functionCreationParams.push(this.code.toString());
+    functionCreationParams.push(this.code.toHtmlString());
 
     var helperFunction: Function;
     try {
@@ -299,7 +318,7 @@ class Transpiler {
     this.transpileRazorBlock(segment.block);
     var sectionFunction: Function;
     try {
-      sectionFunction = Function.call(null, this.code.toString());
+      sectionFunction = Function.call(null, this.code.toHtmlString());
     } catch (e) {
       throw new Error('Syntax error in transpiled code for section ' + segment.name + ': ' + this.code.toString());
     }
