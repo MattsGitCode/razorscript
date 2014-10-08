@@ -10,6 +10,9 @@ that can be instantiated and executed with a viewmodel.
 ```js
 <html>
 <body>
+  <header>
+    @renderSection('header')
+  </header>
   @renderBody()
 </body>
 </html>
@@ -21,7 +24,11 @@ that can be instantiated and executed with a viewmodel.
 @{
   layout = 'Layout.jshtml';
 }
-<h2>@model.title</h2>
+
+@section header {
+  <h2>@model.title</h2>
+}
+
 <ul>
   @foreach(var name in model.items) {
     @listItem(name);
@@ -60,7 +67,9 @@ var razor = require('razorscript'),
 ```html
 <html>
 <body>
-<h2>Hobbits</h2>
+<header>
+  <h2>Hobbits</h2>
+</header>
 <ul>
   <li>Bilbo</li>
   <li>Fredegar</li>
