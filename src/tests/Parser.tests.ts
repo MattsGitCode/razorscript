@@ -266,3 +266,21 @@ test('whitespace before closing html tag recorded', function(){
   var htmlSegment = <HtmlSegment>output[0];
   equal(htmlSegment.whitespaceBeforeClosing, '  ');
 });
+
+test('namespace in html attribute name', function() {
+  var input = '<div a:b="c"/>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var div = <HtmlSegment>output[0];
+  equal(div.attributes.length, 1);
+
+  var attribute = <HtmlAttributeSegment>div.attributes[0];
+
+  equal(attribute.name, 'a:b');
+  equal(attribute.values.length, 1);
+  equal((<LiteralSegment>attribute.values[0]).value, 'c');
+});

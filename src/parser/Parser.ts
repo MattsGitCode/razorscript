@@ -114,7 +114,15 @@ class Parser {
 
   private parseHtmlAttributeSegment(): HtmlAttributeSegment {
     var whitespacePrefix = this.iterator.consume(TokenType.whitespace).text
-    var name = this.iterator.consume(TokenType.alphanumeric).text;
+
+    var nameSegments = [];
+    nameSegments.push(this.iterator.consume(TokenType.alphanumeric).text);
+    while(this.iterator.peek.text === ':') {
+      this.iterator.consume(':');
+      nameSegments.push(this.iterator.consume(TokenType.alphanumeric).text);
+    }
+    var name = nameSegments.join(':');
+
     this.iterator.nowhitespace.consume('=');
 
     var quoteChar = this.iterator.nowhitespace.consume(['"', "'"]).text;
