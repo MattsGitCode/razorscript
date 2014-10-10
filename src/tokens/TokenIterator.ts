@@ -177,7 +177,6 @@ class TokenIterator implements ITokenIterator {
       continueReadingToken(() => TokenIterator.isWhiteSpace(nextChar));
       type = TokenType.whitespace;
     } else if (true) {
-      throw new Error('tokenIterator: "' + thisChar + '" not implemented');
       continueReadingToken(() => thisChar !== currentTokenChars[0]);
       type = TokenType.undefined;
     } else {
@@ -223,7 +222,7 @@ class TokenIterator implements ITokenIterator {
     '?', ':', '.',
     '&', '^', '|', '~', '<<', '>>', '>>>',
     '<', '>', '<=', '>=',
-    '!', '==', '!==', '===', '!==',
+    '!', '!=', '==', '!==', '===', '!==',
     '&&', '||',
     '=', '+=', '-=', '*=', '/=', '%=',
     '<<=', '>>=', '>>>=', '&=', '^=', '|=',

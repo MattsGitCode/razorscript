@@ -61,7 +61,7 @@ class Transpiler {
     this.transpiledClass.prototype.HtmlString = HtmlString;
 
     this.transpiledClass.prototype.escapeHtml = function(val: any): string {
-      if (val === null) {
+      if (val === null || val === undefined) {
         return '';
       }
       if (val instanceof this.HtmlString) {

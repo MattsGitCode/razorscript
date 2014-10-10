@@ -267,7 +267,7 @@ class Parser {
 
     var expression = this.parseRazorSimpleExpression();
 
-    var ops = ['++','<','>','==','?','='];
+    var ops = ['++','<','>','==','?','=', '!='];
     while(ops.indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
       var op = this.iterator.nowhitespace.consume().text;
       if (op === '?') {
@@ -346,7 +346,7 @@ class Parser {
     this.iterator.nowhitespace.consume('if');
     this.iterator.nowhitespace.consume('(');
 
-    test = this.parseRazorSimpleExpression();
+    test = this.parseRazorExpression();
 
     this.iterator.nowhitespace.consume(')');
 

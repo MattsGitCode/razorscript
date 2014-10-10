@@ -103,7 +103,6 @@ test('razor block with variable declaration and initialisation', function() {
 });
 
 test('razor block with binary statement', function(){
-  debugger;
   var input = '@{ 1 < 2; }',
       it = new TokenIterator(input),
       parser = new Parser(it),
@@ -219,4 +218,23 @@ test('named razor section with content', function() {
   var helper = <RazorSection>output[0];
   equal(helper.name, 'abc');
   equal(helper.block.statements.length, 1);
+});
+
+test('if statements with comparison', function() {
+  var input = '@if (true != false) { }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  debugger;
+  output = parser.parse();
+
+  var condition = (<RazorIfStatement>output[0]).test;
+  ok(condition instanceof RazorBinaryExpression);
+  var binary = <RazorBinaryExpression>condition;
+  ok(binary.leftOperand instanceof RazorLiteral);
+  equal((<RazorLiteral>binary.leftOperand).expression, 'true');
+  equal(binary.operator, '!=');
+  ok(binary.rightOperand instanceof RazorLiteral);
+  equal((<RazorLiteral>binary.rightOperand).expression, 'false');
 });
