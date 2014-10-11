@@ -51,8 +51,17 @@ export class ViewEngine {
 
   public renderView(viewName: string): string;
   public renderView(viewName: string, model: any): string;
+  public renderView(viewName: string, model: any, viewData: any): string;
   public renderView(viewName: string, model: any, bodyOfLayout: string): string;
-  public renderView(viewName: string, model?: any, bodyOfLayout?: string): string {
+  public renderView(viewName: string, model: any, viewBag: any, bodyOfLayout: string): string;
+  public renderView(viewName: string, model?: any, viewBagOrBody?: any, bodyOfLayout?: string): string {
+    var viewBag = null;
+    if (typeof viewBagOrBody === 'string') {
+      bodyOfLayout = viewBagOrBody;
+    } else {
+      viewBag = viewBagOrBody;
+    }
+
     if (this.views[viewName] === undefined) {
       var viewSource = this.options.viewContentsProvider(viewName);
       if (!viewSource) {
@@ -72,6 +81,10 @@ export class ViewEngine {
       }
     }
 
+    if (viewBag) {
+      (<any>view).viewBag = viewBag;
+    }
+
     if (bodyOfLayout) {
       (<any>view).renderBody = function() {
         return new HtmlString(bodyOfLayout);
@@ -82,7 +95,7 @@ export class ViewEngine {
 
     if (view.layout) {
       var layoutPath = path.join(path.dirname(viewName), view.layout);
-      renderedView = this.renderView(layoutPath, view, renderedView);
+      renderedView = this.renderView(layoutPath, view, viewBag, renderedView);
     }
 
     return renderedView;
