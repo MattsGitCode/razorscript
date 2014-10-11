@@ -226,7 +226,6 @@ test('if statements with comparison', function() {
       parser = new Parser(it),
       output: Array<Segment>;
 
-  debugger;
   output = parser.parse();
 
   var condition = (<RazorIfStatement>output[0]).test;

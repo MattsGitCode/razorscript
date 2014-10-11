@@ -22,19 +22,27 @@ import RazorTernaryExpression = require('../segments/RazorTernaryExpression');
 import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import IParser = require('../parser/IParser');
 import IView = require('../IView');
+import IConfig = require('../IConfig');
 import CodeBuilder = require('./CodeBuilder');
 import HtmlString = require('./HtmlString');
+var extend = require('extend');
+
+var defaultConfig = {
+  pascal2Camel: false
+};
 
 class Transpiler {
+  private config: IConfig;
   private parser: IParser;
   private code: CodeBuilder;
   private transpiledClass: new (model?: any) => IView;
   private localVariables: Array<string> = [];
   public helpers: any;
 
-  constructor(parser: IParser) {
+  constructor(parser: IParser, config?: IConfig) {
     this.parser = parser;
     this.code = new CodeBuilder();
+    this.config = extend({}, defaultConfig, config);
   }
 
   public transpile(): new (model?: any) => IView {
@@ -198,14 +206,19 @@ class Transpiler {
   }
 
   private transpileRazorVariableAccess(segment: RazorVariableAccess): void {
+    var name = segment.name;
+    if (this.config.pascal2Camel) {
+      name = name.replace(/^([A-Z])(?![A-Z])/, x => x.toLowerCase());
+    }
+
     if (segment.object) {
       this.transpileRazorExpression(segment.object);
-      this.code.directCode('.' + segment.name);
+      this.code.directCode('.' + name);
     } else {
-      if (this.code.isVariableDeclared(segment.name)) {
-        this.code.directCode(segment.name);
+      if (this.code.isVariableDeclared(name)) {
+        this.code.directCode(name);
       } else {
-        this.code.directCode('this.' + segment.name);
+        this.code.directCode('this.' + name);
       }
     }
   }

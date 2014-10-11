@@ -36,6 +36,15 @@ var transpile = function(model?: any, ...segments: Array<Segment>): IView {
   return viewInstance;
 };
 
+var transpileWithConfig = function(config: any, model: any, ...segments: Array<Segment>): IView {
+  var parser = { parse: function() { return segments; } },
+      transpiler = new Transpiler(parser, config),
+      viewClass = transpiler.transpile(),
+      viewInstance = new viewClass(model);
+
+  return viewInstance;
+}
+
 test('razor expression with literal string', function() {
   var view = transpile(// @("hello")
         new RazorInlineExpression(
@@ -320,4 +329,16 @@ test('html.raw bypasses html encoding', function() {
       result = view.execute();
 
   equal(result, '<br />');
+});
+
+test('convert pascal casing to camel case for identifiers', function(){
+  var view = transpileWithConfig({
+        pascal2Camel: true
+      }, null, new RazorBlock([
+        new RazorVariableAccess('Foo')
+      ])),
+      executeBody = view.execute.toString();
+
+  ok(/foo/.test(executeBody));
+  ok(!/Foo/.test(executeBody));
 });
