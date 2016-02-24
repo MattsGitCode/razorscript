@@ -1,6 +1,6 @@
 {
   "name": "razorscript",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "Razor Script transpiles razor markup files to Javascript classes",
   "main": "bin/razor.js",
   "dependencies": {
