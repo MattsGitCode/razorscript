@@ -82,24 +82,12 @@ class TokenIterator implements ITokenIterator {
     var tokenToConsume = this._queue.shift();
 
     if (expected) {
-      if (Array.isArray(expected)) {
-        var isExpected: boolean = false;
-        for (var i = 0; i < expected.length; ++i) {
-          if (tokenToConsume.text === expected[i]) {
-            isExpected = true;
-            break;
-          }
-        }
-        if (!isExpected) {
-          throw new Error('expected one of ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
-        }
-      } else if (typeof expected === 'number') {
-        if (!tokenToConsume.is(<TokenType>expected)) {
-          throw new Error('expected ' + TokenType[expected] + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
-        }
-      } else {
-        if (tokenToConsume.text !== expected) {
-          throw new Error('expected ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+      var error: Error;
+
+      if (expected) {
+        error = this.checkIsExpected(tokenToConsume, expected);
+        if (error) {
+          throw error;
         }
       }
     }
@@ -111,6 +99,29 @@ class TokenIterator implements ITokenIterator {
     }
 
     return tokenToConsume;
+  }
+
+  private checkIsExpected(tokenToConsume: Token, expected: any): Error {
+    if (Array.isArray(expected)) {
+      var isExpected: boolean = false;
+      for (var i = 0; i < expected.length; ++i) {
+        if (tokenToConsume.text === expected[i]) {
+          isExpected = true;
+          break;
+        }
+      }
+      if (!isExpected) {
+        return new Error('expected one of ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+      }
+    } else if (typeof expected === 'number') {
+      if (!tokenToConsume.is(<TokenType>expected)) {
+        return new Error('expected ' + TokenType[expected] + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+      }
+    } else {
+      if (tokenToConsume.text !== expected) {
+        return new Error('expected ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+      }
+    }
   }
 
   private fillQueue(size: number): void {

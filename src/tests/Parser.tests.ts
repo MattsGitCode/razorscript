@@ -2,6 +2,8 @@ import TokenIterator = require('../tokens/TokenIterator');
 import Parser = require('../parser/Parser');
 import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
+import HtmlCommentSegment = require('../segments/HtmlComment');
+import HtmlDocTypeSegment = require('../segments/HtmlDocType');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
 import RazorVariableAccess = require('../segments/RazorVariableAccess');
@@ -283,4 +285,90 @@ test('namespace in html attribute name', function() {
   equal(attribute.name, 'a:b');
   equal(attribute.values.length, 1);
   equal((<LiteralSegment>attribute.values[0]).value, 'c');
+});
+
+test('hyphen in html attribute name', function() {
+  var input = '<div a-b="c"/>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var div = <HtmlSegment>output[0];
+  equal(div.attributes.length, 1);
+
+  var attribute = <HtmlAttributeSegment>div.attributes[0];
+
+  equal(attribute.name, 'a-b');
+  equal(attribute.values.length, 1);
+  equal((<LiteralSegment>attribute.values[0]).value, 'c');
+});
+
+test('doctype element', function() {
+  var input = '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var doctype = <HtmlDocTypeSegment>output[0];
+  equal(doctype.name, ' html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"');
+});
+
+test('html comment', function() {
+  var input = '<!--some comment here-->',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var comment = <HtmlCommentSegment>output[0];
+  equal(comment.text, 'some comment here');
+});
+
+test('script block', function() {
+  var input = "\
+      <script type='text/javascript'>\
+          var codeTags = document.getElementsByTagName('code'),\
+              i, pre;\
+          for (var i = 0; i < codeTags.length; ++i) {\
+              var code = codeTags[i],\
+                  pre = code.parentNode;\
+              if (pre.nodeName.toLowerCase() === 'pre') {\
+                  pre.className = 'prettyprint linenums:1';\
+              } else {\
+                  code.className = 'prettyprint';\
+              }\
+          }\
+        \
+          prettyPrint();\
+      </script>",
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var script = <HtmlSegment>output[0];
+  equal('', '');
+});
+
+test('urls in attributes parsed without added whitespace', function() {
+  var input = '<a href="http://mattscode.com/razorscript/">test</a>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+  
+  output = parser.parse();
+
+  var a = <HtmlSegment>output[0];
+  var href = a.attributes[0];
+
+  equal(href.values.length, 1);
+
+  var val = <LiteralSegment>href.values[0];
+  equal(val.value, 'http://mattscode.com/razorscript/');
 });

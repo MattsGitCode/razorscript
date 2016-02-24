@@ -17,7 +17,7 @@ test('helper methods available in views', function() {
   viewEngine.helpers.sayHello = function(name) {
     return 'Hello, ' + name + '.';
   };
-  var output = viewEngine.renderView('test');
+  var output = viewEngine.renderView('test', null, null);
 
   equal('Hello, George.', output);
 });

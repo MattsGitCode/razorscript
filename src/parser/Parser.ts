@@ -2,6 +2,8 @@ import ITokenIterator = require('../tokens/ITokenIterator');
 import TokenType = require('../tokens/TokenType');
 import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
+import HtmlCommentSegment = require('../segments/HtmlComment');
+import HtmlDocTypeSegment = require('../segments/HtmlDocType');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
 import RazorBlock = require('../segments/RazorBlock');
@@ -48,7 +50,11 @@ class Parser {
     }
 
     if (this.iterator.nowhitespace.peek.isOperator && this.iterator.nowhitespace.peek.text === '<') {
-      return this.parseHtmlSegment();
+	  if (this.iterator.nowhitespace.peekNext.text === '!') {
+	    return this.parseHtmlCommentOrDocType();
+	  } else {
+        return this.parseHtmlSegment();
+      }
     }
 
     return this.parseLiteralSegment();
@@ -57,9 +63,12 @@ class Parser {
   private parseLiteralSegment(): LiteralSegment {
     var parts: Array<string> = [this.iterator.consume().text];
 
-    var stops = ['<', '/', '>', '"', "'", '=', '@'];
+    function isStop(text, nextText): boolean {
+      return text === '<'
+          || (text === '@' && nextText !== '@');
+    }
 
-    while (!this.iterator.eof && stops.indexOf(this.iterator.peek.text) === -1) {
+    while (!this.iterator.eof && !isStop(this.iterator.peek.text, this.iterator.peekNext.text)) {
       parts.push(this.iterator.consume().text);
     }
 
@@ -73,6 +82,7 @@ class Parser {
     }
 
     this.iterator.consume('<');
+
     var tagName = this.iterator.nowhitespace.consume().text;
 
     var attributes: Array<HtmlAttributeSegment> = [];
@@ -93,9 +103,18 @@ class Parser {
 
     this.iterator.nowhitespace.consume('>');
 
+    var parseChildrenAsLiteral: boolean = tagName === 'script';
+
     var children: Array<Segment> = [];
     while (!(this.iterator.nowhitespace.peek.text === '<' && this.iterator.nowhitespace.peekNext.text === '/')) {
-      children.push(this.parseSegment());
+      var childSegment: Segment;
+      if (parseChildrenAsLiteral) {
+        childSegment = new LiteralSegment(this.iterator.consume().text);
+      } else {
+        childSegment = this.parseSegment();
+      }
+
+      children.push(childSegment);
     }
 
     var whitespaceBeforeClosing = '';
@@ -115,13 +134,14 @@ class Parser {
   private parseHtmlAttributeSegment(): HtmlAttributeSegment {
     var whitespacePrefix = this.iterator.consume(TokenType.whitespace).text
 
-    var nameSegments = [];
-    nameSegments.push(this.iterator.consume(TokenType.alphanumeric).text);
-    while(this.iterator.peek.text === ':') {
-      this.iterator.consume(':');
-      nameSegments.push(this.iterator.consume(TokenType.alphanumeric).text);
+    var nameParts: Array<string> = [];
+    while(this.iterator.peek.is(TokenType.alphanumeric) ||
+          this.iterator.peek.text === ':' ||
+          this.iterator.peek.text === '-') {
+      nameParts.push(this.iterator.consume().text);
     }
-    var name = nameSegments.join(':');
+    
+    var name = nameParts.join('');
 
     this.iterator.nowhitespace.consume('=');
 
@@ -132,7 +152,7 @@ class Parser {
       if (this.iterator.peek.isRazor) {
         valueSegments.push(this.parseRazorSegment());
       } else {
-        valueSegments.push(this.parseLiteralSegment());
+        valueSegments.push(this.parseAttributeValueLiteralSegment(quoteChar));
       }
     }
 
@@ -141,10 +161,73 @@ class Parser {
     return new HtmlAttributeSegment(name, quoteChar, whitespacePrefix, valueSegments);
   }
 
+  private parseAttributeValueLiteralSegment(quoteChar: string): LiteralSegment {
+    var parts: Array<string> = [this.iterator.consume().text];
+
+    function isStop(text: string, nextText: string): boolean {
+      return text === quoteChar
+          || (text === '@' && nextText !== '@');
+    }
+
+    while (!this.iterator.eof && !isStop(this.iterator.peek.text, this.iterator.peekNext.text)) {
+      parts.push(this.iterator.consume().text);
+    }
+
+    return new LiteralSegment(parts.join(''));
+  }
+
+  private parseHtmlCommentOrDocType() : Segment {
+    var leadingWhitespace: string = '';
+    if (this.iterator.peek.is(TokenType.whitespace)) {
+      leadingWhitespace = this.iterator.consume().text;
+    }
+
+    this.iterator.consume('<');
+    this.iterator.consume('!');
+
+    if (this.iterator.peek.text === 'DOCTYPE') {
+      return this.parseHtmlDocType();
+    }
+    
+    return this.parseHtmlComment(leadingWhitespace);
+  }
+
+  private parseHtmlComment(leadingWhitespace: string): HtmlCommentSegment {
+    var commentParts: Array<string> = [];
+    this.iterator.consume('--');
+    while (!(this.iterator.peek.text === '--' && this.iterator.peekNext.text === '>')) {
+      commentParts.push(this.iterator.consume().text);
+    }
+    this.iterator.consume('--');
+    this.iterator.consume('>');
+
+    return new HtmlCommentSegment(leadingWhitespace, commentParts.join(''));
+  }
+
+  private parseHtmlDocType(): HtmlDocTypeSegment {
+  	this.iterator.consume('DOCTYPE').text;
+
+  	var parts: Array<string> = [];
+
+  	while (!this.iterator.eof && this.iterator.peek.text !== '>') {
+      parts.push(this.iterator.consume().text);
+    }
+
+  	this.iterator.nowhitespace.consume('>');
+  	var value = parts.join('');
+  	
+  	return new HtmlDocTypeSegment(value);
+  }
+
   private parseRazorSegment(): Segment {
     var segment: Segment;
 
-    this.iterator.nowhitespace.consume('@');
+	  var whitespace: string = '';
+	  if (this.iterator.peek.is(TokenType.whitespace)) {
+	    whitespace = this.iterator.consume().text;
+  	}
+
+    this.iterator.consume('@');
 
     if (this.iterator.peek.isWhitespace) {
       throw new Error('@ cannot be followed by whitespace')

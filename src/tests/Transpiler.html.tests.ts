@@ -1,5 +1,6 @@
 import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
+import HtmlCommentSegment = require('../segments/HtmlComment');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
 import RazorBlockSegment = require('../segments/RazorBlock');
@@ -126,3 +127,12 @@ test('newlines in whitespace preserved', function() {
       result = view.execute();
   equal(result, ' \n <div/>')
 });
+
+test('html comments preserved', function() {
+  var view = transpile(
+        new HtmlCommentSegment('  ', 'my comment')
+      ),
+      result = view.execute();
+  equal(result, '  <!--my comment-->');
+});
+

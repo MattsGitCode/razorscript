@@ -30,9 +30,9 @@ export interface IViewEngineOptions extends IConfig {
 }
 
 var defaultViewEngineOptions = {
-  viewContentsProvider: path => {
-    if (fs.existsSync(path)) {
-      return fs.readFileSync(path, {encoding: 'utf8'});
+  viewContentsProvider: (view) => {
+    if (fs.existsSync(view)) {
+      return fs.readFileSync(view, {encoding: 'utf8'});
     }
     return null;
   }
@@ -49,25 +49,17 @@ export class ViewEngine {
     this.helpers = {};
   }
 
-  public renderView(viewName: string): string;
-  public renderView(viewName: string, model: any): string;
-  public renderView(viewName: string, model: any, viewData: any): string;
-  public renderView(viewName: string, model: any, bodyOfLayout: string): string;
-  public renderView(viewName: string, model: any, viewBag: any, bodyOfLayout: string): string;
-  public renderView(viewName: string, model?: any, viewBagOrBody?: any, bodyOfLayout?: string): string {
-    var viewBag = null;
-    if (typeof viewBagOrBody === 'string') {
-      bodyOfLayout = viewBagOrBody;
-    } else {
-      viewBag = viewBagOrBody;
+  public renderView(viewName: string, model: any, viewBag: any, bodyOfLayout?: string, viewRelativeTo?: string): string {
+    if (viewRelativeTo) {
+      viewName = path.join(path.dirname(viewRelativeTo), viewName);
     }
 
     if (this.views[viewName] === undefined) {
-      var viewSource = this.options.viewContentsProvider(viewName);
-      if (!viewSource) {
+      var viewContents = this.options.viewContentsProvider(viewName);
+      if (!viewContents) {
         throw new Error('could not find view ' + viewName);
       }
-      var viewClass = transpile(viewSource, this.options);
+      var viewClass = transpile(viewContents, this.options);
       this.views[viewName] = viewClass;
     }
 
@@ -94,8 +86,7 @@ export class ViewEngine {
     renderedView = view.execute();
 
     if (view.layout) {
-      var layoutPath = path.join(path.dirname(viewName), view.layout);
-      renderedView = this.renderView(layoutPath, view, viewBag, renderedView);
+      renderedView = this.renderView(view.layout, view, viewBag, renderedView, viewName);
     }
 
     return renderedView;

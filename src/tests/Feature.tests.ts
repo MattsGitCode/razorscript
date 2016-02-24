@@ -11,13 +11,23 @@ tests.forEach(name => {
       modelFilename = 'src/tests/testfiles/' + name + '/model.json',
       expectedFilename = 'src/tests/testfiles/' + name + '/expected.html';
 
-  var model = JSON.parse(fs.readFileSync(modelFilename, {encoding: 'utf8'})),
+  var modelFileContents: string;
+  
+  try {
+    modelFileContents = fs.readFileSync(modelFilename, {encoding: 'utf8'});
+  } catch (ex) {
+    if (ex.code !== 'ENOENT') {
+      throw ex;
+    }
+  }
+
+  var model = modelFileContents ? JSON.parse(modelFileContents) : null,
       expected = fs.readFileSync(expectedFilename, {encoding: 'utf8'});
 
 
   test('feature test ' + name.replace(/_/g, ' '), function() {
     var viewEngine = new razor.ViewEngine(),
-        output = viewEngine.renderView(razorFilename, model);
+        output = viewEngine.renderView(razorFilename, model, null);
 
     equal(output, expected);
   });
