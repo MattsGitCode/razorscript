@@ -2,6 +2,7 @@ import Segment = require('../segments/Segment');
 import RazorComment = require('../segments/RazorComment');
 import HtmlSegment = require('../segments/Html');
 import HtmlCommentSegment = require('../segments/HtmlComment');
+import HtmlDocTypeSegment = require('../segments/HtmlDocType');
 import HtmlAttributeSegment = require('../segments/HtmlAttribute');
 import LiteralSegment = require('../segments/Literal');
 import RazorBlockSegment = require('../segments/RazorBlock');
@@ -132,6 +133,8 @@ class Transpiler {
       this.transpileRazorVariableDeclaration(<RazorVariableDeclaration>segment);
     } else if (segment instanceof HtmlCommentSegment) {
       this.transpileHtmlCommentSegment(<HtmlCommentSegment>segment);
+    } else if (segment instanceof HtmlDocTypeSegment) {
+      this.transpileHtmlDocTypeSegment(<HtmlDocTypeSegment>segment);
     } else {
       throw new Error('transpileSegment(' + segment.getType() + '): not implemented');
     }
@@ -159,6 +162,13 @@ class Transpiler {
     this.code.literal('<!--');
     this.code.literal(segment.text)
     this.code.literal('-->');
+  }
+
+  private transpileHtmlDocTypeSegment(segment: HtmlDocTypeSegment): void {
+    this.code.startMarkup();
+    this.code.literal('<!DOCTYPE');
+    this.code.literal(segment.name);
+    this.code.literal('>');
   }
 
   private transpileHtmlAttributeSegment(segment: HtmlAttributeSegment): void {
