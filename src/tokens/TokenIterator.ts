@@ -111,15 +111,15 @@ class TokenIterator implements ITokenIterator {
         }
       }
       if (!isExpected) {
-        return new Error('expected one of ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+        return new Error('expected one of ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer.toString(this._original));
       }
     } else if (typeof expected === 'number') {
       if (!tokenToConsume.is(<TokenType>expected)) {
-        return new Error('expected ' + TokenType[expected] + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+        return new Error('expected ' + TokenType[expected] + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer.toString(this._original));
       }
     } else {
       if (tokenToConsume.text !== expected) {
-        return new Error('expected ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer);
+        return new Error('expected ' + expected + ' but found ' + tokenToConsume.text + ' at ' + tokenToConsume.pointer.toString(this._original));
       }
     }
   }
