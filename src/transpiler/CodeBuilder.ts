@@ -15,6 +15,7 @@ class CodeBuilder {
   private state: CodeBuilderState;
   private previousState: CodeBuilderState;
   private localVariables: Array<string>;
+  private predefinedGlobals: Array<string> = ['Array', 'String'];
 
   constructor(){
     this.code = [];
@@ -30,12 +31,22 @@ class CodeBuilder {
     return this.localVariables.indexOf(name) !== -1;
   }
 
+  public isPredefinedGlobal(name: string): boolean {
+    return this.predefinedGlobals.indexOf(name) !== -1;
+  }
+
   public startMarkup(): void {
     this.state = CodeBuilderState.Markup;
   }
 
   public startCode(): void {
     this.state = CodeBuilderState.Code;
+  }
+
+  public leadingWhitespace(value: string): void {
+    if (this.state === CodeBuilderState.Markup && value && value.length !== 0) {
+      this.code.push('html.push("' + escapeCode(value) + '");');
+    }
   }
 
   public literal(value: string): void {

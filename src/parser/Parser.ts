@@ -11,6 +11,7 @@ import RazorExpression = require('../segments/RazorExpression');
 import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorArrayLiteral = require('../segments/RazorArrayLiteral');
 import RazorLiteral = require('../segments/RazorLiteral');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
@@ -243,9 +244,9 @@ class Parser {
     } else if (keywords.indexOf(this.iterator.peek.text) !== -1) {
       segment = this.parseRazorStatement();
     } else if (this.iterator.peek.isAlpha) {
-      segment = new RazorInlineExpression(this.parseRazorSimpleExpression());
+      segment = new RazorInlineExpression(this.parseRazorSimpleExpression(), whitespace);
     } else if (this.iterator.peek.text === '(') {
-      segment = new RazorInlineExpression(this.parseRazorExpression());
+      segment = new RazorInlineExpression(this.parseRazorExpression(), whitespace);
     } else if (this.iterator.peek.text === '{') {
       segment = this.parseRazorBlock();
     } else {
@@ -256,22 +257,29 @@ class Parser {
   }
 
   private parseRazorSimpleExpression(): RazorExpression {
-    if (this.iterator.nowhitespace.peek.isNumeric) {
+    var leadingWhitespace = '';
+    if (this.iterator.peek.isWhitespace) {
+      leadingWhitespace = this.iterator.consume().text;
+    }
+
+    if (this.iterator.peek.isNumeric) {
       return new RazorLiteral(this.iterator.nowhitespace.consume().text);
     }
-    if (['true','false'].indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
-      return new RazorLiteral(this.iterator.nowhitespace.consume().text);
+    if (['true','false'].indexOf(this.iterator.peek.text) !== -1) {
+      return new RazorLiteral(this.iterator.consume().text);
     }
 
     var expression: RazorExpression;
-    if (this.iterator.nowhitespace.peek.isAlpha) {
-      expression = new RazorVariableAccess(this.iterator.nowhitespace.consume().text);
-    } else if (['\'','"'].indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
+    if (this.iterator.peek.isAlpha) {
+      expression = new RazorVariableAccess(this.iterator.consume().text);
+    } else if (['\'','"'].indexOf(this.iterator.peek.text) !== -1) {
       expression = this.parseRazorStringLiteral();
-    } else if (this.iterator.nowhitespace.peek.isNumeric) {
+    } else if (this.iterator.peek.isNumeric) {
       expression = this.parseRazorNumberLiteral();
+    } else if (this.iterator.peek.text === '[') {
+      expression = this.parseRazorArrayLiteral();
     } else {
-      throw new Error('not implemented parseRazorSimpleExpresson for token \'' + this.iterator.nowhitespace.peek.text + '\' at ' + this.iterator.peek.pointer);
+      throw new Error('not implemented parseRazorSimpleExpresson for token \'' + this.iterator.peek.text + '\' at ' + this.iterator.peek.pointer);
     }
 
     while(!this.iterator.eof) {
@@ -334,7 +342,8 @@ class Parser {
   }
 
   private parseRazorExpression(): RazorExpression {
-    if (this.iterator.nowhitespace.peek.text === '++'){
+    var unaryOperators = ['++', '--', 'new', '!'];
+    if (unaryOperators.indexOf(this.iterator.nowhitespace.peek.text) !== -1){
       var op = this.iterator.nowhitespace.consume().text;
       var expression = this.parseRazorSimpleExpression();
       return new RazorUnaryExpression(expression, op);
@@ -445,7 +454,7 @@ class Parser {
 
     if (this.iterator.nowhitespace.peek.text === '=') {
       this.iterator.nowhitespace.consume();
-      expression = this.parseRazorSimpleExpression();
+      expression = this.parseRazorExpression();
     }
 
     return new RazorVariableDeclaration(variableName, expression);
@@ -520,6 +529,26 @@ class Parser {
     var block = this.parseRazorBlock();
 
     return new RazorSection(name, block);
+  }
+
+  private parseRazorArrayLiteral(): RazorArrayLiteral {
+    this.iterator.nowhitespace.consume('[');
+
+    var elements: Array<RazorExpression> = [];
+
+    var isFirstParam = true;
+    while (this.iterator.nowhitespace.peek.text !== ']') {
+      if (isFirstParam) {
+        isFirstParam = false;
+      } else {
+        this.iterator.nowhitespace.consume(',');
+      }
+      elements.push(this.parseRazorSimpleExpression());
+    }
+
+    this.iterator.nowhitespace.consume(']');
+
+    return new RazorArrayLiteral(elements);
   }
 }
 

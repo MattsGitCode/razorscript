@@ -7,6 +7,7 @@ import RazorBlockSegment = require('../segments/RazorBlock');
 import RazorStatementSegment = require('../segments/RazorStatement');
 import RazorLiteral = require('../segments/RazorLiteral');
 import RazorInlineExpression = require('../segments/RazorInlineExpression');
+import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import IView = require('../IView');
 
 import Transpiler = require('../transpiler/Transpiler');
@@ -134,5 +135,24 @@ test('html comments preserved', function() {
       ),
       result = view.execute();
   equal(result, '  <!--my comment-->');
+});
+
+test('whitespace preserved between razor simple expressions inside html', function() {
+  var view = transpile(
+        new HtmlSegment('a', '', '', [], [
+          new RazorInlineExpression(
+            new RazorVariableAccess('model')
+          ),
+          new RazorInlineExpression(
+            new RazorVariableAccess('model'),
+            ' '
+          )
+        ])
+      );
+
+  view.model = 'b';
+  var result = view.execute();
+
+  equal(result, '<a>b b</a>');
 });
 

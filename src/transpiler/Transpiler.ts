@@ -11,6 +11,7 @@ import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import RazorLiteral = require('../segments/RazorLiteral');
 import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorArrayLiteral = require('../segments/RazorArrayLiteral');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
 import RazorForLoop = require('../segments/RazorForLoop');
@@ -110,9 +111,7 @@ class Transpiler {
     } else if (segment instanceof HtmlSegment) {
       this.transpileHtmlSegment(<HtmlSegment>segment);
     } else if (segment instanceof RazorInlineExpression) {
-      this.code.openScope();
-      this.transpileRazorExpression((<RazorInlineExpression>segment).expression);
-      this.code.closeScope();
+      this.transpileRazorInlineExpression((<RazorInlineExpression>segment));
     } else if (segment instanceof RazorExpression) {
       this.transpileRazorExpression(<RazorExpression>segment);
     } else if (segment instanceof RazorIfStatement) {
@@ -180,15 +179,21 @@ class Transpiler {
         this.code.literal(l.value);
       } else if (v instanceof RazorInlineExpression) {
         var r = <RazorInlineExpression>v;
-        this.code.openScope();
-        this.transpileRazorExpression(r.expression);
-        this.code.closeScope();
+        this.transpileRazorInlineExpression(r);
       } else {
         throw new Error('Expected LiteralSegment or RazorInlineExpression');
       }
     });
 
     this.code.endAttribute(segment.quoteChar);
+  }
+
+  private transpileRazorInlineExpression(segment: RazorInlineExpression): void {
+    this.code.leadingWhitespace(segment.leadingWhitespace);
+
+    this.code.openScope();
+    this.transpileRazorExpression(segment.expression);
+    this.code.closeScope();
   }
 
   private transpileRazorExpression(segment: RazorExpression): void {
@@ -208,6 +213,8 @@ class Transpiler {
       this.transpileRazorBinaryExpression(<RazorBinaryExpression>segment);
     } else if (segment instanceof RazorTernaryExpression) {
       this.transpileRazorTernaryExpression(<RazorTernaryExpression>segment);
+    } else if (segment instanceof RazorArrayLiteral) {
+      this.transpileRazorArrayLiteral(<RazorArrayLiteral>segment);
     } else {
       throw new Error('transpileRazorExpression(' + segment.getType() + '): not implemented');
     }
@@ -228,6 +235,12 @@ class Transpiler {
 
   private transpileRazorVariableAccess(segment: RazorVariableAccess): void {
     var name = segment.name;
+
+    if (!segment.object && this.code.isPredefinedGlobal(name)) {
+      this.code.directCode(name);
+      return;
+    }
+
     if (this.config.pascal2Camel) {
       name = name.replace(/^([A-Z])(?![A-Z])/, x => x.toLowerCase());
     }
@@ -245,8 +258,6 @@ class Transpiler {
   }
 
   private transpileRazorMethodCall(segment: RazorMethodCall): void {
-    var expression = '';
-
     this.transpileRazorExpression(segment.accessor);
     this.code.directCode('(');
     var isFirst = true;
@@ -259,6 +270,20 @@ class Transpiler {
       this.transpileRazorExpression(a);
     });
     this.code.directCode(')');
+  }
+
+  private transpileRazorArrayLiteral(segment: RazorArrayLiteral): void {
+    this.code.directCode('[');
+    var isFirst = true;
+    segment.elements.forEach(e => {
+      if (isFirst) {
+        isFirst = false;
+      } else {
+        this.code.directCode(',');
+      }
+      this.transpileRazorExpression(e);
+    });
+    this.code.directCode(']');
   }
 
   private transpileRazorArrayAccess(segment: RazorArrayAccess): void {
@@ -305,6 +330,9 @@ class Transpiler {
 
   private transpileRazorUnaryExpression(segment: RazorUnaryExpression): void {
     this.code.directCode(segment.operator);
+    if (segment.operator === 'new') {
+      this.code.directCode(' ');
+    }
     this.transpileRazorExpression(segment.operand);
   }
 

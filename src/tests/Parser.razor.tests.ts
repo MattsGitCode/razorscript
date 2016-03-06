@@ -3,10 +3,12 @@ import Parser = require('../parser/Parser');
 import Segment = require('../segments/Segment');
 import HtmlSegment = require('../segments/Html');
 import LiteralSegment = require('../segments/Literal');
+import RazorInlineExpression = require('../segments/RazorInlineExpression');
 import RazorBlockSegment = require('../segments/RazorBlock');
 import RazorVariableAccess = require('../segments/RazorVariableAccess');
 import RazorMethodCall = require('../segments/RazorMethodCall');
 import RazorArrayAccess = require('../segments/RazorArrayAccess');
+import RazorArrayLiteral = require('../segments/RazorArrayLiteral');
 import RazorLiteral = require('../segments/RazorLiteral');
 import RazorStatement = require('../segments/RazorStatement');
 import RazorIfStatement = require('../segments/RazorIfStatement');
@@ -123,6 +125,80 @@ test('razor block with binary statement', function(){
   equal(right.expression, '2');
 });
 
+test('razor block with new operator', function(){
+  var input = '@{ new Array(); }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var razorBlockSegment = <RazorBlockSegment>output[0];
+  equal(razorBlockSegment.statements.length, 1);
+  ok(razorBlockSegment.statements[0] instanceof RazorUnaryExpression, 'expected RazorUnaryExpression but got ' + razorBlockSegment.statements[0].getType());
+
+  var unary = <RazorUnaryExpression>razorBlockSegment.statements[0];
+  equal(unary.operator, 'new');
+  ok(unary.operand instanceof RazorMethodCall, 'expected RazorMethodCall but got ' + unary.operand.getType());
+
+  var methodCall = <RazorMethodCall>unary.operand;
+  ok(methodCall.accessor instanceof RazorVariableAccess, 'expected RazorVariableAccess but got ' + methodCall.accessor.getType());
+  var variableAccess = <RazorVariableAccess>methodCall.accessor;
+  equal(variableAccess.name, 'Array');
+
+  equal(methodCall.arguments.length, 0);
+
+});
+
+test('razor block with variable declaration and initialisation with new operator', function() {
+  var input = '@{ var x = new Array(); }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var razorBlockSegment = <RazorBlockSegment>output[0];
+  equal(razorBlockSegment.statements.length, 1);
+  ok(razorBlockSegment.statements[0] instanceof RazorVariableDeclaration, 'expected RazorVariableDeclaration');
+  var declaration = <RazorVariableDeclaration>razorBlockSegment.statements[0];
+
+  equal(declaration.name, 'x');
+
+  ok(declaration.initialiser instanceof RazorUnaryExpression, 'expected initialiser to be RazorUnaryExpression');
+  
+  var unary = <RazorUnaryExpression>declaration.initialiser;
+  equal(unary.operator, 'new');
+  ok(unary.operand instanceof RazorMethodCall, 'expected RazorMethodCall but got ' + unary.operand.getType());
+
+  var methodCall = <RazorMethodCall>unary.operand;
+  ok(methodCall.accessor instanceof RazorVariableAccess, 'expected RazorVariableAccess but got ' + methodCall.accessor.getType());
+  var variableAccess = <RazorVariableAccess>methodCall.accessor;
+  equal(variableAccess.name, 'Array');
+
+  equal(methodCall.arguments.length, 0);
+});
+
+test('razor block with array literal', function(){
+  var input = '@{ ["b", "c"]; }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var razorBlockSegment = <RazorBlockSegment>output[0];
+  equal(razorBlockSegment.statements.length, 1);
+  ok(razorBlockSegment.statements[0] instanceof RazorArrayLiteral, 'expected RazorArrayLiteral but got ' + razorBlockSegment.statements[0].getType());
+
+  var arrayLiteral = <RazorArrayLiteral>razorBlockSegment.statements[0];
+
+  equal(arrayLiteral.elements.length, 2);
+  
+  ok(arrayLiteral.elements[0] instanceof RazorLiteral, 'expected RazorLiteral but got ' + arrayLiteral.elements[0].getType());
+  ok(arrayLiteral.elements[1] instanceof RazorLiteral, 'expected RazorLiteral but got ' + arrayLiteral.elements[0].getType());
+});
+
 test('html inside razor block', function(){
   var input = '@if (true) { <div /> }',
       it = new TokenIterator(input),
@@ -236,4 +312,22 @@ test('if statements with comparison', function() {
   equal(binary.operator, '!=');
   ok(binary.rightOperand instanceof RazorLiteral);
   equal((<RazorLiteral>binary.rightOperand).expression, 'false');
+});
+
+test('html with simple razor expression', function() {
+  var input = '<a>@b @c</a>',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var a = <HtmlSegment>output[0];
+  equal(a.children.length, 2);
+
+  var b = <RazorInlineExpression>a.children[0];
+  equal(b.leadingWhitespace, '')
+
+  var c = <RazorInlineExpression>a.children[1];
+  equal(c.leadingWhitespace, ' ');
 });
