@@ -331,3 +331,34 @@ test('html with simple razor expression', function() {
   var c = <RazorInlineExpression>a.children[1];
   equal(c.leadingWhitespace, ' ');
 });
+
+test('if statement with logical or expression', function() {
+  var input = '@if (true || true) { }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var condition = (<RazorIfStatement>output[0]).test;
+  ok(condition instanceof RazorBinaryExpression, 'expected RazorBinaryExpression but was ' + condition.getType());
+});
+
+test('if statement with else if and else', function() {
+  var input = '@if (false) { } else if (false) { } else { }',
+      it = new TokenIterator(input),
+      parser = new Parser(it),
+      output: Array<Segment>;
+
+  output = parser.parse();
+
+  var ifStmt = <RazorIfStatement>output[0];
+  
+  var elseifStmt = <RazorIfStatement>ifStmt.elseifStatement;
+  ok(!!elseifStmt, 'expected an else if statement on the first if');
+  var elseStmt = <RazorBlockSegment>ifStmt.elseStatement;
+  ok(!elseStmt, 'did not expect an else statement on the first if');
+
+  ok(!(elseifStmt.elseifStatement), 'did not expect an else if statement on the second if');
+  ok(!!(elseifStmt.elseStatement), 'expected and else statement on the second if');
+});

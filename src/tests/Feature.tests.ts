@@ -29,8 +29,8 @@ tests.forEach(name => {
     var viewEngine = new razor.ViewEngine(),
         output = viewEngine.renderView(razorFilename, model, null);
 
-    expected = expected.replace(/>[ \n\r]*</g, '><');
-    output = output.replace(/>[ \n\r]*</g, '><');
+    expected = expected.replace(/(^|>)[ \n\r]*($|<)/g, '$1$2');
+    output = output.replace(/(^|>)[ \n\r]*($|<)/g, '$1$2');
 
     equal(output, expected);
   });

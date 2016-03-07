@@ -302,6 +302,15 @@ class Transpiler {
     this.transpileRazorBlock(segment.body);
 
     this.code.directCode('}');
+
+    if (segment.elseifStatement) {
+      this.code.directCode('else ');
+      this.transpileRazorIfStatement(segment.elseifStatement);
+    } else if (segment.elseStatement) {
+      this.code.directCode('else {');
+      this.transpileRazorBlock(segment.elseStatement);
+      this.code.directCode('}');
+    }
   }
 
   private transpileRazorForLoop(segment: RazorForLoop): void {

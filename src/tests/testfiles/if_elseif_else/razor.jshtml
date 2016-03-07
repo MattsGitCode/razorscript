@@ -1,0 +1,7 @@
+@if (model.a === model.b) {
+  <h1>First</h1>
+} else if (model.b === model.c) {
+  <h2>Second</h2>
+} else {
+  <h3>Third</h3>
+}

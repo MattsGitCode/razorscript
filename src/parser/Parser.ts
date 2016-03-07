@@ -359,7 +359,7 @@ class Parser {
 
     var expression = this.parseRazorSimpleExpression();
 
-    var ops = ['++','<','>','==','?','=', '!='];
+    var ops = ['++','<','>','==','===','?','=', '!=', '!==', '&&', '||'];
     while(ops.indexOf(this.iterator.nowhitespace.peek.text) !== -1) {
       var op = this.iterator.nowhitespace.consume().text;
       if (op === '?') {
@@ -431,20 +431,30 @@ class Parser {
     return expression;
   }
 
-  private parseIfStatement(): RazorStatement {
+  private parseIfStatement(): RazorIfStatement {
     var test: RazorExpression,
-        body: RazorBlock;
+        body: RazorBlock,
+        elseifStmt: RazorIfStatement,
+        elseStmt: RazorBlock;
 
     this.iterator.nowhitespace.consume('if');
     this.iterator.nowhitespace.consume('(');
-
     test = this.parseRazorExpression();
-
     this.iterator.nowhitespace.consume(')');
 
     body = this.parseRazorBlock();
 
-    return new RazorIfStatement(test, body);
+    if (this.iterator.nowhitespace.peek.text === 'else') {
+      this.iterator.nowhitespace.consume('else');
+
+      if (this.iterator.nowhitespace.peek.text === 'if') {
+        elseifStmt = this.parseIfStatement();
+      } else {
+        elseStmt = this.parseRazorBlock();
+      }
+    }
+
+    return new RazorIfStatement(test, body, elseifStmt, elseStmt);
   }
 
   private parseVariableDeclaration(): RazorStatement {
